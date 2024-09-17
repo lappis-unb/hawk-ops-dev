@@ -43,6 +43,19 @@ def verify_if_exists_table(cursor_destino):
     else:
         _log(f"A tabela '{TABLE_NAME}' não existe.")
         return False
+    
+def source_columns_and_types_table(cursor_source):
+    query_columns_table = f"""
+            SELECT column_name, data_type
+            FROM information_schema.columns
+            WHERE table_name = '{TABLE_NAME}'
+            ORDER BY ordinal_position;
+        """
+    cursor_source.execute(query_columns_table)
+    result_query_columns_table = cursor_source.fetchall()
+
+    return result_query_columns_table
+
 
 CONN_DB_RASA = "conn_db_rasa"
 CONN_DB_ORIGEM = "conn_db_origem"
@@ -79,6 +92,8 @@ def rasa_data_ingestion_dag():
             cursor_destino = conn_destino.cursor()
 
             check_table = verify_if_exists_table(cursor_destino)
+
+            result_query_columns_and_types_table = source_columns_and_types_table(cursor_source)
 
 
         except Exception as e:
