@@ -9,14 +9,21 @@ from typing import Any
 # Configurando o logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def log_variable(data: Any):
+def _log(obj: Any) -> None:
     """
-    Função que aceita qualquer dado e imprime usando o logging.
-    
-    Args:
-        data (Any): Pode ser qualquer tipo de dado (string, número, lista, dicionário, etc.)
+    Logs the obj in a fancy look.
+
+    Returns:
+    -------
+    None
     """
-    logging.info(f'Valor da variável: {data}')
+
+    info2 = f"="
+    logging.info(info2)
+    logging.info("==============START LOGGING===============")
+    logging.info(obj)
+    logging.info("==============END LOGGING===============")
+    logging.info(info2)
 
 default_args = {
     'owner': 'Eric Silveira',
@@ -29,7 +36,7 @@ CONN_DB_RASA = "conn_db_rasa"
 
 @dag(
     dag_id='rasa_data_ingestion_dag',
-    start_date=datetime(2024, 9, 14),
+    start_date=datetime(2024, 9, 17),
     schedule_interval='@daily',
     default_args=default_args,
     catchup=False,
@@ -39,21 +46,29 @@ def rasa_data_ingestion_dag():
     start = EmptyOperator(task_id='start')
     end = EmptyOperator(task_id='end')
 
-    create_pet_table = SQLExecuteQueryOperator(
-        task_id="create_pet_table",
+    columns_name = SQLExecuteQueryOperator(
+        task_id="columns_name",
         conn_id=CONN_DB_RASA,
+        return_last=True,
         sql="""
-            CREATE TABLE IF NOT EXISTS public.pet (
-            pet_id SERIAL PRIMARY KEY,
-            name VARCHAR NOT NULL,
-            pet_type VARCHAR NOT NULL,
-            birth_date DATE NOT NULL,
-            OWNER VARCHAR NOT NULL);
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'events';
           """,
     )
     
+    @task
+    def hashes_table(ti=None):
+        """
+        Extrai o nome de todas as colunas da tabela do banco de origem
+        a ser ingerida para realizar uma hash com a agregação dessas colunas.
+        """
+        query_result = ti.xcom_pull(task_ids="columns_name")
 
-    start >> create_pet_table >> end
+
+        _log(query_result)
+
+    start >> columns_name >> hashes_table() >> end
 
 # Instanciar a DAG
 instancia_dag_ingestion = rasa_data_ingestion_dag()
