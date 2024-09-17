@@ -1,0 +1,14 @@
+[2024-09-17T12:53:22.137+0000] {processor.py:186} INFO - Started process (PID=720) to work on /opt/airflow/dags/rasa_data_ingestion_dag.py
+[2024-09-17T12:53:22.139+0000] {processor.py:914} INFO - Processing file /opt/airflow/dags/rasa_data_ingestion_dag.py for tasks to queue
+[2024-09-17T12:53:22.142+0000] {logging_mixin.py:190} INFO - [2024-09-17T12:53:22.141+0000] {dagbag.py:587} INFO - Filling up the DagBag from /opt/airflow/dags/rasa_data_ingestion_dag.py
+[2024-09-17T12:53:22.172+0000] {processor.py:925} INFO - DAG(s) 'rasa_data_ingestion_dag' retrieved from /opt/airflow/dags/rasa_data_ingestion_dag.py
+[2024-09-17T12:53:23.183+0000] {logging_mixin.py:190} INFO - [2024-09-17T12:53:23.182+0000] {dag.py:3229} INFO - Sync 1 DAGs
+[2024-09-17T12:53:23.228+0000] {logging_mixin.py:190} INFO - [2024-09-17T12:53:23.228+0000] {dag.py:4156} INFO - Setting next_dagrun for rasa_data_ingestion_dag to 2024-09-17 00:00:00+00:00, run_after=2024-09-18 00:00:00+00:00
+[2024-09-17T12:53:23.270+0000] {processor.py:208} INFO - Processing /opt/airflow/dags/rasa_data_ingestion_dag.py took 1.149 seconds
+[2024-09-17T12:53:53.641+0000] {processor.py:186} INFO - Started process (PID=730) to work on /opt/airflow/dags/rasa_data_ingestion_dag.py
+[2024-09-17T12:53:53.643+0000] {processor.py:914} INFO - Processing file /opt/airflow/dags/rasa_data_ingestion_dag.py for tasks to queue
+[2024-09-17T12:53:53.645+0000] {logging_mixin.py:190} INFO - [2024-09-17T12:53:53.645+0000] {dagbag.py:587} INFO - Filling up the DagBag from /opt/airflow/dags/rasa_data_ingestion_dag.py
+[2024-09-17T12:53:53.674+0000] {processor.py:925} INFO - DAG(s) 'rasa_data_ingestion_dag' retrieved from /opt/airflow/dags/rasa_data_ingestion_dag.py
+[2024-09-17T12:53:53.736+0000] {logging_mixin.py:190} INFO - [2024-09-17T12:53:53.736+0000] {dag.py:3229} INFO - Sync 1 DAGs
+[2024-09-17T12:53:53.813+0000] {logging_mixin.py:190} INFO - [2024-09-17T12:53:53.813+0000] {dag.py:4156} INFO - Setting next_dagrun for rasa_data_ingestion_dag to 2024-09-17 00:00:00+00:00, run_after=2024-09-18 00:00:00+00:00
+[2024-09-17T12:53:53.852+0000] {processor.py:208} INFO - Processing /opt/airflow/dags/rasa_data_ingestion_dag.py took 0.227 seconds
