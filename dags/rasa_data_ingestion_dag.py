@@ -26,6 +26,7 @@ def _log(obj: Any) -> None:
     logging.info(info2)
 
 
+
 def verify_if_exists_table(cursor_destino):
 
     query_exists_table = f"""
@@ -43,6 +44,8 @@ def verify_if_exists_table(cursor_destino):
     else:
         _log(f"A tabela '{TABLE_NAME}' não existe.")
         return False
+
+
     
 def source_columns_and_types_table(cursor_source):
     query_columns_table = f"""
@@ -56,6 +59,28 @@ def source_columns_and_types_table(cursor_source):
 
     return result_query_columns_table
 
+
+def create_table(conn_destino, columns, types):
+
+    try:
+        values_table = ''
+
+        for names, tipes_columns in zip(columns, types):
+            values_table = values_table + f"{names} {tipes_columns}, "
+
+        values_table = values_table[:-2]
+
+        query_create_table = f"CREATE TABLE IF NOT EXISTS {TABLE_NAME} ({values_table});"
+
+        _log(query_create_table)
+
+        cursor_destino = conn_destino.cursor()
+
+        cursor_destino.execute(query_create_table)
+        conn_destino.commit()
+        return
+    except Exception as e:
+        logging.error(f"Ocorreu um erro: {str(e)}")
 
 CONN_DB_RASA = "conn_db_rasa"
 CONN_DB_ORIGEM = "conn_db_origem"
@@ -94,10 +119,21 @@ def rasa_data_ingestion_dag():
             check_table = verify_if_exists_table(cursor_destino)
 
             result_query_columns_and_types_table = source_columns_and_types_table(cursor_source)
+            
+            columns = [item[0] for item in result_query_columns_and_types_table]
+            types = [item[1] for item in result_query_columns_and_types_table]
 
+            _log(columns)
+            _log(types)
+
+            if check_table == False:
+                create_table(conn_destino, columns, types)
+            else:
+                return
 
         except Exception as e:
             logging.error(f"Ocorreu um erro: {str(e)}")
+    
 
 
     start >> verify_and_create_table() >> end
