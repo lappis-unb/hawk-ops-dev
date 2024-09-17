@@ -1,0 +1,30 @@
+[2024-09-17T13:57:46.199+0000] {local_task_job_runner.py:123} INFO - ::group::Pre task execution logs
+[2024-09-17T13:57:46.240+0000] {taskinstance.py:2612} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: rasa_data_ingestion_dag.columns_name manual__2024-09-17T13:09:27.941176+00:00 [queued]>
+[2024-09-17T13:57:46.260+0000] {taskinstance.py:2612} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: rasa_data_ingestion_dag.columns_name manual__2024-09-17T13:09:27.941176+00:00 [queued]>
+[2024-09-17T13:57:46.260+0000] {taskinstance.py:2865} INFO - Starting attempt 11 of 12
+[2024-09-17T13:57:46.289+0000] {taskinstance.py:2888} INFO - Executing <Task(SQLExecuteQueryOperator): columns_name> on 2024-09-17 13:09:27.941176+00:00
+[2024-09-17T13:57:46.309+0000] {standard_task_runner.py:104} INFO - Running: ['***', 'tasks', 'run', 'rasa_data_ingestion_dag', 'columns_name', 'manual__2024-09-17T13:09:27.941176+00:00', '--job-id', '44', '--raw', '--subdir', 'DAGS_FOLDER/rasa_data_ingestion_dag.py', '--cfg-path', '/tmp/tmpuq_61hgh']
+[2024-09-17T13:57:46.314+0000] {standard_task_runner.py:105} INFO - Job 44: Subtask columns_name
+[2024-09-17T13:57:46.318+0000] {logging_mixin.py:190} WARNING - /home/***/.local/lib/python3.12/site-packages/***/task/task_runner/standard_task_runner.py:70 DeprecationWarning: This process (pid=504) is multi-threaded, use of fork() may lead to deadlocks in the child.
+[2024-09-17T13:57:46.320+0000] {standard_task_runner.py:72} INFO - Started process 505 to run task
+[2024-09-17T13:57:46.405+0000] {task_command.py:467} INFO - Running <TaskInstance: rasa_data_ingestion_dag.columns_name manual__2024-09-17T13:09:27.941176+00:00 [running]> on host aca847883b6e
+[2024-09-17T13:57:46.589+0000] {taskinstance.py:3131} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='Eric Silveira' AIRFLOW_CTX_DAG_ID='rasa_data_ingestion_dag' AIRFLOW_CTX_TASK_ID='columns_name' AIRFLOW_CTX_EXECUTION_DATE='2024-09-17T13:09:27.941176+00:00' AIRFLOW_CTX_TRY_NUMBER='11' AIRFLOW_CTX_DAG_RUN_ID='manual__2024-09-17T13:09:27.941176+00:00'
+[2024-09-17T13:57:46.591+0000] {taskinstance.py:731} INFO - ::endgroup::
+[2024-09-17T13:57:46.596+0000] {sql.py:266} INFO - Executing: 
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'events';
+          
+[2024-09-17T13:57:46.618+0000] {base.py:84} INFO - Retrieving connection 'conn_db_***'
+[2024-09-17T13:57:46.637+0000] {base.py:84} INFO - Retrieving connection 'conn_db_***'
+[2024-09-17T13:57:46.660+0000] {sql.py:509} INFO - Running statement: 
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'events';
+          , parameters: None
+[2024-09-17T13:57:46.697+0000] {sql.py:518} INFO - Rows affected: 7
+[2024-09-17T13:57:46.743+0000] {taskinstance.py:340} INFO - ::group::Post task execution logs
+[2024-09-17T13:57:46.744+0000] {taskinstance.py:352} INFO - Marking task as SUCCESS. dag_id=***_data_ingestion_dag, task_id=columns_name, run_id=manual__2024-09-17T13:09:27.941176+00:00, execution_date=20240917T130927, start_date=20240917T135746, end_date=20240917T135746
+[2024-09-17T13:57:46.819+0000] {local_task_job_runner.py:266} INFO - Task exited with return code 0
+[2024-09-17T13:57:46.876+0000] {taskinstance.py:3900} INFO - 1 downstream tasks scheduled from follow-on schedule check
+[2024-09-17T13:57:46.878+0000] {local_task_job_runner.py:245} INFO - ::endgroup::

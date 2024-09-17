@@ -25,14 +25,35 @@ def _log(obj: Any) -> None:
     logging.info("==============END LOGGING===============")
     logging.info(info2)
 
+
+def verify_if_exists_table(cursor_destino):
+
+    query_exists_table = f"""
+                SELECT 1 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = '{TABLE_NAME}';
+        """
+    cursor_destino.execute(query_exists_table)
+    result_query_exists_table = cursor_destino.fetchone()
+
+    if result_query_exists_table:
+        _log(f"A tabela '{TABLE_NAME}' existe.")
+        return True
+    else:
+        _log(f"A tabela '{TABLE_NAME}' não existe.")
+        return False
+
+CONN_DB_RASA = "conn_db_rasa"
+CONN_DB_ORIGEM = "conn_db_origem"
+TABLE_NAME = "events"
+
 default_args = {
     'owner': 'Eric Silveira',
     'depends_on_past': False,
     'email_on_failure': False,
     'retries': 1
 }
-
-CONN_DB_RASA = "conn_db_rasa"
 
 @dag(
     dag_id='rasa_data_ingestion_dag',
@@ -46,29 +67,25 @@ def rasa_data_ingestion_dag():
     start = EmptyOperator(task_id='start')
     end = EmptyOperator(task_id='end')
 
-    columns_name = SQLExecuteQueryOperator(
-        task_id="columns_name",
-        conn_id=CONN_DB_RASA,
-        return_last=True,
-        sql="""
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_name = 'events';
-          """,
-    )
-    
     @task
-    def hashes_table(ti=None):
-        """
-        Extrai o nome de todas as colunas da tabela do banco de origem
-        a ser ingerida para realizar uma hash com a agregação dessas colunas.
-        """
-        query_result = ti.xcom_pull(task_ids="columns_name")
+    def verify_and_create_table():
+        try:
+            postgres_source_hook = PostgresHook(postgres_conn_id=CONN_DB_RASA)
+            conn_source = postgres_source_hook.get_conn()
+            cursor_source = conn_source.cursor()
+                
+            postgres_destino_hook = PostgresHook(postgres_conn_id=CONN_DB_ORIGEM)
+            conn_destino = postgres_destino_hook.get_conn()
+            cursor_destino = conn_destino.cursor()
+
+            check_table = verify_if_exists_table(cursor_destino)
 
 
-        _log(query_result)
+        except Exception as e:
+            logging.error(f"Ocorreu um erro: {str(e)}")
 
-    start >> columns_name >> hashes_table() >> end
+
+    start >> verify_and_create_table() >> end
 
 # Instanciar a DAG
 instancia_dag_ingestion = rasa_data_ingestion_dag()

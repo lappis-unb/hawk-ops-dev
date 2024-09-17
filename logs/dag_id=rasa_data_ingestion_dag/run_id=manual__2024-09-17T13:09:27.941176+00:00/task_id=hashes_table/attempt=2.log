@@ -1,0 +1,28 @@
+[2024-09-17T13:58:20.714+0000] {local_task_job_runner.py:123} INFO - ::group::Pre task execution logs
+[2024-09-17T13:58:20.752+0000] {taskinstance.py:2612} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: rasa_data_ingestion_dag.hashes_table manual__2024-09-17T13:09:27.941176+00:00 [queued]>
+[2024-09-17T13:58:20.770+0000] {taskinstance.py:2612} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: rasa_data_ingestion_dag.hashes_table manual__2024-09-17T13:09:27.941176+00:00 [queued]>
+[2024-09-17T13:58:20.771+0000] {taskinstance.py:2865} INFO - Starting attempt 2 of 3
+[2024-09-17T13:58:20.801+0000] {taskinstance.py:2888} INFO - Executing <Task(_PythonDecoratedOperator): hashes_table> on 2024-09-17 13:09:27.941176+00:00
+[2024-09-17T13:58:20.823+0000] {standard_task_runner.py:104} INFO - Running: ['***', 'tasks', 'run', 'rasa_data_ingestion_dag', 'hashes_table', 'manual__2024-09-17T13:09:27.941176+00:00', '--job-id', '47', '--raw', '--subdir', 'DAGS_FOLDER/rasa_data_ingestion_dag.py', '--cfg-path', '/tmp/tmpl3vjerkh']
+[2024-09-17T13:58:20.828+0000] {standard_task_runner.py:105} INFO - Job 47: Subtask hashes_table
+[2024-09-17T13:58:20.832+0000] {logging_mixin.py:190} WARNING - /home/***/.local/lib/python3.12/site-packages/***/task/task_runner/standard_task_runner.py:70 DeprecationWarning: This process (pid=523) is multi-threaded, use of fork() may lead to deadlocks in the child.
+[2024-09-17T13:58:20.833+0000] {standard_task_runner.py:72} INFO - Started process 524 to run task
+[2024-09-17T13:58:20.919+0000] {task_command.py:467} INFO - Running <TaskInstance: rasa_data_ingestion_dag.hashes_table manual__2024-09-17T13:09:27.941176+00:00 [running]> on host aca847883b6e
+[2024-09-17T13:58:21.088+0000] {taskinstance.py:3131} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='Eric Silveira' AIRFLOW_CTX_DAG_ID='rasa_data_ingestion_dag' AIRFLOW_CTX_TASK_ID='hashes_table' AIRFLOW_CTX_EXECUTION_DATE='2024-09-17T13:09:27.941176+00:00' AIRFLOW_CTX_TRY_NUMBER='2' AIRFLOW_CTX_DAG_RUN_ID='manual__2024-09-17T13:09:27.941176+00:00'
+[2024-09-17T13:58:21.090+0000] {taskinstance.py:731} INFO - ::endgroup::
+[2024-09-17T13:58:21.120+0000] {rasa_data_ingestion_dag.py:22} INFO - =
+[2024-09-17T13:58:21.120+0000] {rasa_data_ingestion_dag.py:23} INFO - ==============START LOGGING===============
+[2024-09-17T13:58:21.121+0000] {rasa_data_ingestion_dag.py:24} INFO - [['timestamp'], ['sender_id'], ['id'], ['data'], ['intent_name'], ['action_name'], ['type_name']]
+[2024-09-17T13:58:21.121+0000] {rasa_data_ingestion_dag.py:25} INFO - ==============END LOGGING===============
+[2024-09-17T13:58:21.122+0000] {rasa_data_ingestion_dag.py:26} INFO - =
+[2024-09-17T13:58:21.122+0000] {rasa_data_ingestion_dag.py:22} INFO - =
+[2024-09-17T13:58:21.122+0000] {rasa_data_ingestion_dag.py:23} INFO - ==============START LOGGING===============
+[2024-09-17T13:58:21.123+0000] {rasa_data_ingestion_dag.py:24} INFO - ['timestamp']
+[2024-09-17T13:58:21.123+0000] {rasa_data_ingestion_dag.py:25} INFO - ==============END LOGGING===============
+[2024-09-17T13:58:21.123+0000] {rasa_data_ingestion_dag.py:26} INFO - =
+[2024-09-17T13:58:21.124+0000] {python.py:240} INFO - Done. Returned value was: None
+[2024-09-17T13:58:21.143+0000] {taskinstance.py:340} INFO - ::group::Post task execution logs
+[2024-09-17T13:58:21.144+0000] {taskinstance.py:352} INFO - Marking task as SUCCESS. dag_id=rasa_data_ingestion_dag, task_id=hashes_table, run_id=manual__2024-09-17T13:09:27.941176+00:00, execution_date=20240917T130927, start_date=20240917T135820, end_date=20240917T135821
+[2024-09-17T13:58:21.211+0000] {local_task_job_runner.py:266} INFO - Task exited with return code 0
+[2024-09-17T13:58:21.249+0000] {taskinstance.py:3900} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2024-09-17T13:58:21.251+0000] {local_task_job_runner.py:245} INFO - ::endgroup::

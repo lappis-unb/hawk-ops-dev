@@ -1,0 +1,36 @@
+[2024-09-17T19:44:46.262+0000] {local_task_job_runner.py:123} INFO - ::group::Pre task execution logs
+[2024-09-17T19:44:46.282+0000] {taskinstance.py:2612} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: rasa_data_ingestion_dag.verify_and_create_table manual__2024-09-17T19:43:15.495969+00:00 [queued]>
+[2024-09-17T19:44:46.299+0000] {taskinstance.py:2612} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: rasa_data_ingestion_dag.verify_and_create_table manual__2024-09-17T19:43:15.495969+00:00 [queued]>
+[2024-09-17T19:44:46.299+0000] {taskinstance.py:2865} INFO - Starting attempt 3 of 4
+[2024-09-17T19:44:46.311+0000] {taskinstance.py:2888} INFO - Executing <Task(_PythonDecoratedOperator): verify_and_create_table> on 2024-09-17 19:43:15.495969+00:00
+[2024-09-17T19:44:46.321+0000] {standard_task_runner.py:104} INFO - Running: ['***', 'tasks', 'run', 'rasa_data_ingestion_dag', 'verify_and_create_table', 'manual__2024-09-17T19:43:15.495969+00:00', '--job-id', '101', '--raw', '--subdir', 'DAGS_FOLDER/rasa_data_ingestion_dag.py', '--cfg-path', '/tmp/tmpaob1udsj']
+[2024-09-17T19:44:46.323+0000] {standard_task_runner.py:105} INFO - Job 101: Subtask verify_and_create_table
+[2024-09-17T19:44:46.324+0000] {logging_mixin.py:190} WARNING - /home/***/.local/lib/python3.12/site-packages/***/task/task_runner/standard_task_runner.py:70 DeprecationWarning: This process (pid=2215) is multi-threaded, use of fork() may lead to deadlocks in the child.
+[2024-09-17T19:44:46.324+0000] {standard_task_runner.py:72} INFO - Started process 2216 to run task
+[2024-09-17T19:44:46.374+0000] {task_command.py:467} INFO - Running <TaskInstance: rasa_data_ingestion_dag.verify_and_create_table manual__2024-09-17T19:43:15.495969+00:00 [running]> on host 4b36eb9de04e
+[2024-09-17T19:44:46.456+0000] {taskinstance.py:3131} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='Eric Silveira' AIRFLOW_CTX_DAG_ID='rasa_data_ingestion_dag' AIRFLOW_CTX_TASK_ID='verify_and_create_table' AIRFLOW_CTX_EXECUTION_DATE='2024-09-17T19:43:15.495969+00:00' AIRFLOW_CTX_TRY_NUMBER='3' AIRFLOW_CTX_DAG_RUN_ID='manual__2024-09-17T19:43:15.495969+00:00'
+[2024-09-17T19:44:46.457+0000] {taskinstance.py:731} INFO - ::endgroup::
+[2024-09-17T19:44:46.469+0000] {base.py:84} INFO - Retrieving connection 'conn_db_***'
+[2024-09-17T19:44:46.483+0000] {base.py:84} INFO - Retrieving connection 'conn_db_origem'
+[2024-09-17T19:44:46.492+0000] {rasa_data_ingestion_dag.py:22} INFO - =
+[2024-09-17T19:44:46.493+0000] {rasa_data_ingestion_dag.py:23} INFO - ==============START LOGGING===============
+[2024-09-17T19:44:46.493+0000] {rasa_data_ingestion_dag.py:24} INFO - A tabela 'events' não existe.
+[2024-09-17T19:44:46.493+0000] {rasa_data_ingestion_dag.py:25} INFO - ==============END LOGGING===============
+[2024-09-17T19:44:46.493+0000] {rasa_data_ingestion_dag.py:26} INFO - =
+[2024-09-17T19:44:46.504+0000] {rasa_data_ingestion_dag.py:22} INFO - =
+[2024-09-17T19:44:46.504+0000] {rasa_data_ingestion_dag.py:23} INFO - ==============START LOGGING===============
+[2024-09-17T19:44:46.504+0000] {rasa_data_ingestion_dag.py:24} INFO - ['id', 'sender_id', 'type_name', 'timestamp', 'intent_name', 'action_name', 'data']
+[2024-09-17T19:44:46.505+0000] {rasa_data_ingestion_dag.py:25} INFO - ==============END LOGGING===============
+[2024-09-17T19:44:46.505+0000] {rasa_data_ingestion_dag.py:26} INFO - =
+[2024-09-17T19:44:46.505+0000] {rasa_data_ingestion_dag.py:22} INFO - =
+[2024-09-17T19:44:46.505+0000] {rasa_data_ingestion_dag.py:23} INFO - ==============START LOGGING===============
+[2024-09-17T19:44:46.506+0000] {rasa_data_ingestion_dag.py:24} INFO - ['bigint', 'bigint', 'character varying', 'double precision', 'character varying', 'character varying', 'text']
+[2024-09-17T19:44:46.506+0000] {rasa_data_ingestion_dag.py:25} INFO - ==============END LOGGING===============
+[2024-09-17T19:44:46.506+0000] {rasa_data_ingestion_dag.py:26} INFO - =
+[2024-09-17T19:44:46.506+0000] {rasa_data_ingestion_dag.py:117} ERROR - Ocorreu um erro: cannot access local variable 'values_table' where it is not associated with a value
+[2024-09-17T19:44:46.507+0000] {python.py:240} INFO - Done. Returned value was: None
+[2024-09-17T19:44:46.518+0000] {taskinstance.py:340} INFO - ::group::Post task execution logs
+[2024-09-17T19:44:46.519+0000] {taskinstance.py:352} INFO - Marking task as SUCCESS. dag_id=***_data_ingestion_dag, task_id=verify_and_create_table, run_id=manual__2024-09-17T19:43:15.495969+00:00, execution_date=20240917T194315, start_date=20240917T194446, end_date=20240917T194446
+[2024-09-17T19:44:46.580+0000] {local_task_job_runner.py:266} INFO - Task exited with return code 0
+[2024-09-17T19:44:46.602+0000] {taskinstance.py:3900} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2024-09-17T19:44:46.604+0000] {local_task_job_runner.py:245} INFO - ::endgroup::
