@@ -5,7 +5,7 @@ from scripts.database_etl import PostgresETL
 from scripts.database_etl.utils import setup_logging
 
 default_args = {
-    "owner": "Giovani Giampauli",
+    "owner": "Giovani Giampauli / Eric Silveira",
     "depends_on_past": False,
     "email": ["giovanni.acg@gmail.com"],
     "email_on_failure": True,
@@ -32,13 +32,19 @@ def clone_rasa_events():
 
         source_conn_id = "rasa_db_airflow"
         target_conn_id = "rasa_db_airflow"
+        source_schema = "public"
+        target_schema = "public"
+
         table_name_source = "events"
         table_name_target = "events_target"
         key_column = "id"
 
+
         etl = PostgresETL(
-            source_conn_id=source_conn_id,
-            target_conn_id=target_conn_id,
+            source_conn_id = source_conn_id,
+            target_conn_id = target_conn_id,
+            source_schema = source_schema,
+            target_schema = target_schema,
             chunk_size=100000,
             max_threads=5,
         )

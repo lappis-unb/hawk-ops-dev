@@ -11,11 +11,15 @@ class PostgresETL(BaseETL):
         self,
         source_conn_id,
         target_conn_id,
+        source_schema,
+        target_schema,
         chunk_size=100000,
         max_threads=5,
     ):
         self.source_conn_id = source_conn_id
         self.target_conn_id = target_conn_id
+        self.source_schema = source_schema
+        self.target_schema = target_schema
         self.chunk_size = chunk_size
         self.max_threads = max_threads
 
@@ -33,10 +37,15 @@ class PostgresETL(BaseETL):
         logging.info(f"Iniciando clonagem incremental da tabela {table_name_source}")
 
         try:
+            # Verifica se existe um schema no banco de destino
+            with self.target_engine.connect() as conn:
+                self.check_schema(self.target_schema, self.target_engine)
+                self.verify_and_create_table(self.target_schema, table_name_source, table_name_target, self.target_engine)
+
             # Obtém o último valor da chave no banco de destino
             with self.target_engine.connect() as conn:
                 result = conn.execute(
-                    text(f"SELECT MAX({key_column}) FROM {table_name_target}")
+                    text(f"SELECT MAX({key_column}) FROM {table_name_target};")
                 )
                 last_key = result.scalar() or 0
                 logging.info(f"Último valor da chave no destino: {last_key}")

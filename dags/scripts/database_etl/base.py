@@ -41,3 +41,72 @@ class BaseETL:
     def transform_data(self, df):
         # Método genérico para transformações
         return df
+
+    def check_schema(self, schema, engine):
+
+        try:
+            with engine.connect() as conn:
+                query_exists_schema = f"CREATE SCHEMA IF NOT EXISTS {schema};"
+                result = conn.execute(query_exists_schema)
+            
+                if result:
+                    logging.info(f"Schema {schema} criado com sucesso!")
+                    return True
+                else:
+                    logging.error(f"Erro na criação do schema {schema}!")
+                    return False
+
+        except Exception as e:
+            logging.error("Erro ao se conectar com o banco de dados", exc_info=True)
+            raise e
+        
+    
+    def verify_and_create_table(self, schema, table_name_source, table_name_target, engine):
+
+        try:
+            with engine.connect() as conn:
+                query_exists_schema = f"""
+                    SELECT 1 
+                    FROM information_schema.tables 
+                    WHERE table_schema = '{schema}'
+                    AND table_name = '{table_name_target}';
+                """
+
+                result = conn.execute(query_exists_schema)
+                result_query_exists_table = result.fetchone()
+            
+                if result_query_exists_table:
+                   return
+                else:
+                    query_columns_table = f"""
+                        SELECT column_name, data_type
+                        FROM information_schema.columns
+                        WHERE table_name = '{table_name_source}'
+                        ORDER BY ordinal_position;
+                    """
+                    result = conn.execute(query_columns_table)
+                    result_query_columns_and_types_table = result.fetchall()
+
+                    columns = [item[0] for item in result_query_columns_and_types_table]
+                    types = [item[1] for item in result_query_columns_and_types_table]
+
+                    logging.info(f"Colunas: {columns}, tipos: {types}")
+                    try:
+                        values_table = ''
+
+                        for names, tipes_columns in zip(columns, types):
+                            values_table = values_table + f"{names} {tipes_columns}, "
+
+                        values_table = values_table[:-2]
+
+                        query_create_table = f"CREATE TABLE IF NOT EXISTS {schema}.{table_name_target} ({values_table});"
+
+                        conn.execute(query_create_table)
+                        conn.commit()
+                        return
+                    except Exception as e:
+                        logging.error(f"Ocorreu um erro: {str(e)}")
+ 
+        except Exception as e:
+            logging.error("Erro ao se conectar com o banco de dados", exc_info=True)
+            raise e

@@ -90,7 +90,7 @@ def create_table(conn_destiny, columns, types):
 
 
 
-def source_and_write_data(conn_origin, conn_destiny):
+def source_and_write_data(conn_origin, conn_destiny, columns, types):
 
     cursor_origin = conn_origin.cursor()
     cursor_destiny = conn_destiny.cursor()
@@ -100,10 +100,14 @@ def source_and_write_data(conn_origin, conn_destiny):
     FROM {TABLE_NAME};
     """
 
+
+
     cursor_origin.execute(query_source_data)
     data = cursor_origin.fetchall()
 
-    _log(data)
+    for item in columns:
+        _log(item)
+    
 
 
 
@@ -141,25 +145,35 @@ def rasa_data_ingestion_dag():
             check_table = verify_if_exists_table_and_schema(conn_destiny)
 
             result_query_columns_and_types_table = source_columns_and_types_table(cursor_source)
-            
+
             columns = [item[0] for item in result_query_columns_and_types_table]
+            
+
             types = [item[1] for item in result_query_columns_and_types_table]
 
+            list_return ={
+            'columns': columns,
+            'types': types
+            }
             if check_table == False:
                 create_table(conn_destiny, columns, types)
-            else:
-                return
 
         except Exception as e:
             logging.error(f"Ocorreu um erro: {str(e)}")
 
+        return list_return
+
     @task
-    def write_data():
+    def write_data(list_return):
         
-        source_and_write_data(conn_source, conn_destiny)
+        source_and_write_data(conn_source, conn_destiny, list_return['columns'], list_return['types'])
 
 
-    start >> verify_and_create_table() >> write_data() >> end
+
+    task_verify_and_create_table = verify_and_create_table()
+
+
+    start >> task_verify_and_create_table >> write_data(task_verify_and_create_table) >> end
 
 # Instanciar a DAG
 instancia_dag_ingestion = rasa_data_ingestion_dag()
