@@ -1,3 +1,92 @@
+# Arquivos compilados Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Extensões C
+*.so
+
+# Distribuição / Empacotamento
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Arquivos gerados pelo instalador
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Relatórios de testes unitários / cobertura
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.nosetests.xml
+coverage.xml
+*,cover
+.hypothesis/
+.pytest_cache/
+
+# Traduções
+*.mo
+*.pot
+
+# Arquivos de log
+*.log
+
+# Banco de dados SQLite (se usado)
+db.sqlite3
+db.sqlite3-journal
+
+# Configurações locais
+local_settings.py
+
+# Diretórios virtuais de ambiente
 .env
-venv
-init.sql
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Configurações do Airflow
+airflow.cfg
+unittests.cfg
+airflow.db
+
+# Logs do Airflow
+logs/
+
+# Diretórios de metadados do PySpark
+metastore_db/
+derby.log
+spark-warehouse/
+
+# Checkpoints do Spark Streaming
+checkpoint/
+
+# Arquivos do Jupyter Notebook
+.ipynb_checkpoints/
+
+# Configurações do IDE
+.idea/
+.vscode/
+
+# Arquivos do macOS
+.DS_Store
