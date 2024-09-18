@@ -80,8 +80,6 @@ def create_table(conn_destino, columns, types):
 
         query_create_table = f"CREATE TABLE IF NOT EXISTS {TABLE_NAME} ({values_table});"
 
-        _log(query_create_table)
-
         cursor_destino = conn_destino.cursor()
 
         cursor_destino.execute(query_create_table)
@@ -109,25 +107,25 @@ def rasa_data_ingestion_dag():
     start = EmptyOperator(task_id='start')
     end = EmptyOperator(task_id='end')
 
+    postgres_source_hook = PostgresHook(postgres_conn_id=CONN_DB_RASA)
+    conn_source = postgres_source_hook.get_conn()
+    cursor_source = conn_source.cursor()
+        
+    postgres_destino_hook = PostgresHook(postgres_conn_id=CONN_DB_ORIGEM)
+    conn_destino = postgres_destino_hook.get_conn()
+
     @task
     def verify_and_create_table():
         try:
-            postgres_source_hook = PostgresHook(postgres_conn_id=CONN_DB_RASA)
-            conn_source = postgres_source_hook.get_conn()
-            cursor_source = conn_source.cursor()
-                
-            postgres_destino_hook = PostgresHook(postgres_conn_id=CONN_DB_ORIGEM)
-            conn_destino = postgres_destino_hook.get_conn()
 
             check_table = verify_if_exists_table_and_schema(conn_destino)
 
             result_query_columns_and_types_table = source_columns_and_types_table(cursor_source)
+
+            _log(result_query_columns_and_types_table)
             
             columns = [item[0] for item in result_query_columns_and_types_table]
             types = [item[1] for item in result_query_columns_and_types_table]
-
-            _log(columns)
-            _log(types)
 
             if check_table == False:
                 create_table(conn_destino, columns, types)
@@ -136,10 +134,13 @@ def rasa_data_ingestion_dag():
 
         except Exception as e:
             logging.error(f"Ocorreu um erro: {str(e)}")
-    
+
+    @task
+    def write_data():
+        _log('oi')
 
 
-    start >> verify_and_create_table() >> end
+    start >> verify_and_create_table() >> write_data() >> end
 
 # Instanciar a DAG
 instancia_dag_ingestion = rasa_data_ingestion_dag()
