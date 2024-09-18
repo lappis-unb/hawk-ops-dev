@@ -46,15 +46,24 @@ class BaseETL:
 
         try:
             with engine.connect() as conn:
-                query_exists_schema = f"CREATE SCHEMA IF NOT EXISTS {schema};"
-                result = conn.execute(query_exists_schema)
+
+                verify_exists_schema = f"""
+                    SELECT schema_name
+                    FROM information_schema.schemata
+                    WHERE schema_name = '{schema}';
+                """
             
-                if result:
-                    logging.info(f"Schema {schema} criado com sucesso!")
+                if verify_exists_schema:
+                    logging.info(f"Schema {schema} já existe!")
                     return True
                 else:
-                    logging.error(f"Erro na criação do schema {schema}!")
-                    return False
+                    query_exists_schema = f"CREATE SCHEMA IF NOT EXISTS {schema};"
+                    result = conn.execute(query_exists_schema)
+                    if result: 
+                        logging.info(f"Schema {schema} criado com sucesso!")
+                    else:
+                        logging.error(f"Erro na criação do schema {schema}!")
+                        return False
 
         except Exception as e:
             logging.error("Erro ao se conectar com o banco de dados", exc_info=True)
