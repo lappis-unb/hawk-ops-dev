@@ -6,8 +6,10 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 import logging
 from typing import Any
 
-# Configurando o logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+CONN_DB_RASA = "conn_db_rasa"
+CONN_DB_ORIGEM = "conn_db_origem"
+TABLE_NAME = "events"
+SCHEMA = "public"
 
 def _log(obj: Any) -> None:
     """
@@ -27,7 +29,13 @@ def _log(obj: Any) -> None:
 
 
 
-def verify_if_exists_table(cursor_destino):
+def verify_if_exists_table_and_schema(conn_destino):
+
+    cursor_destino = conn_destino.cursor()
+
+    query_exists_schema = f"CREATE SCHEMA IF NOT EXISTS {SCHEMA};"
+    cursor_destino.execute(query_exists_schema)
+    conn_destino.commit()
 
     query_exists_table = f"""
                 SELECT 1 
@@ -82,10 +90,6 @@ def create_table(conn_destino, columns, types):
     except Exception as e:
         logging.error(f"Ocorreu um erro: {str(e)}")
 
-CONN_DB_RASA = "conn_db_rasa"
-CONN_DB_ORIGEM = "conn_db_origem"
-TABLE_NAME = "events"
-
 default_args = {
     'owner': 'Eric Silveira',
     'depends_on_past': False,
@@ -114,9 +118,8 @@ def rasa_data_ingestion_dag():
                 
             postgres_destino_hook = PostgresHook(postgres_conn_id=CONN_DB_ORIGEM)
             conn_destino = postgres_destino_hook.get_conn()
-            cursor_destino = conn_destino.cursor()
 
-            check_table = verify_if_exists_table(cursor_destino)
+            check_table = verify_if_exists_table_and_schema(conn_destino)
 
             result_query_columns_and_types_table = source_columns_and_types_table(cursor_source)
             
