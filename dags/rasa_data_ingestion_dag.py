@@ -6,7 +6,7 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 import logging
 from typing import Any
 
-CONN_DB_RASA = "conn_db_rasa"
+CONN_DB_ORIGIN = "conn_db_rasa"
 CONN_DB_DESTINY = "conn_db_destiny"
 TABLE_NAME = "events"
 SCHEMA = "public"
@@ -40,7 +40,7 @@ def verify_if_exists_table_and_schema(conn_destiny):
     query_exists_table = f"""
                 SELECT 1 
                 FROM information_schema.tables 
-                WHERE table_schema = {SCHEMA} 
+                WHERE table_schema = '{SCHEMA}'
                 AND table_name = '{TABLE_NAME}';
         """
     cursor_destiny.execute(query_exists_table)
@@ -88,16 +88,35 @@ def create_table(conn_destiny, columns, types):
     except Exception as e:
         logging.error(f"Ocorreu um erro: {str(e)}")
 
+
+
+def source_and_write_data(conn_origin, conn_destiny):
+
+    cursor_origin = conn_origin.cursor()
+    cursor_destiny = conn_destiny.cursor()
+
+    query_source_data = f"""
+    SELECT *
+    FROM {TABLE_NAME};
+    """
+
+    cursor_origin.execute(query_source_data)
+    data = cursor_origin.fetchall()
+
+    _log(data)
+
+
+
 default_args = {
     'owner': 'Eric Silveira',
     'depends_on_past': False,
     'email_on_failure': False,
-    'retries': 1
+    'retries': 0
 }
 
 @dag(
     dag_id='rasa_data_ingestion_dag',
-    start_date=datetime(2024, 9, 17),
+    start_date=datetime(2024, 9, 18),
     schedule_interval='@daily',
     default_args=default_args,
     catchup=False,
@@ -107,12 +126,13 @@ def rasa_data_ingestion_dag():
     start = EmptyOperator(task_id='start')
     end = EmptyOperator(task_id='end')
 
-    postgres_source_hook = PostgresHook(postgres_conn_id=CONN_DB_RASA)
+    postgres_source_hook = PostgresHook(postgres_conn_id=CONN_DB_ORIGIN)
     conn_source = postgres_source_hook.get_conn()
     cursor_source = conn_source.cursor()
         
-    postgres_destino_hook = PostgresHook(postgres_conn_id=CONN_DB_ORIGEM)
-    conn_destino = postgres_destino_hook.get_conn()
+    postgres_destino_hook = PostgresHook(postgres_conn_id=CONN_DB_DESTINY)
+    conn_destiny = postgres_destino_hook.get_conn()
+
 
     @task
     def verify_and_create_table():
@@ -121,8 +141,6 @@ def rasa_data_ingestion_dag():
             check_table = verify_if_exists_table_and_schema(conn_destiny)
 
             result_query_columns_and_types_table = source_columns_and_types_table(cursor_source)
-
-            _log(result_query_columns_and_types_table)
             
             columns = [item[0] for item in result_query_columns_and_types_table]
             types = [item[1] for item in result_query_columns_and_types_table]
@@ -137,7 +155,8 @@ def rasa_data_ingestion_dag():
 
     @task
     def write_data():
-        _log('oi')
+        
+        source_and_write_data(conn_source, conn_destiny)
 
 
     start >> verify_and_create_table() >> write_data() >> end
