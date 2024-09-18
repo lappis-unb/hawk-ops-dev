@@ -12,7 +12,6 @@ x-airflow-common:
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
-    - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
   user: "${AIRFLOW_UID:-50000}:0"
@@ -81,6 +80,8 @@ services:
         condition: service_completed_successfully
     networks:  # Corrigido aqui
       - airflow_network
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
 
   airflow-scheduler:
     <<: *airflow-common
