@@ -90,7 +90,6 @@ class BaseETL:
                     columns = [item[0] for item in result_query_columns_and_types_table]
                     types = [item[1] for item in result_query_columns_and_types_table]
 
-                    logging.info(f"Colunas: {columns}, tipos: {types}")
                     try:
                         values_table = ''
 
@@ -102,7 +101,7 @@ class BaseETL:
                         query_create_table = f"CREATE TABLE IF NOT EXISTS {schema}.{table_name_target} ({values_table});"
 
                         conn.execute(query_create_table)
-                        conn.commit()
+
                         return
                     except Exception as e:
                         logging.error(f"Ocorreu um erro: {str(e)}")
