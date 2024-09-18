@@ -7,7 +7,7 @@ import logging
 from typing import Any
 
 CONN_DB_RASA = "conn_db_rasa"
-CONN_DB_ORIGEM = "conn_db_origem"
+CONN_DB_DESTINY = "conn_db_destiny"
 TABLE_NAME = "events"
 SCHEMA = "public"
 
@@ -29,22 +29,22 @@ def _log(obj: Any) -> None:
 
 
 
-def verify_if_exists_table_and_schema(conn_destino):
+def verify_if_exists_table_and_schema(conn_destiny):
 
-    cursor_destino = conn_destino.cursor()
+    cursor_destiny = conn_destiny.cursor()
 
     query_exists_schema = f"CREATE SCHEMA IF NOT EXISTS {SCHEMA};"
-    cursor_destino.execute(query_exists_schema)
-    conn_destino.commit()
+    cursor_destiny.execute(query_exists_schema)
+    conn_destiny.commit()
 
     query_exists_table = f"""
                 SELECT 1 
                 FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                WHERE table_schema = {SCHEMA} 
                 AND table_name = '{TABLE_NAME}';
         """
-    cursor_destino.execute(query_exists_table)
-    result_query_exists_table = cursor_destino.fetchone()
+    cursor_destiny.execute(query_exists_table)
+    result_query_exists_table = cursor_destiny.fetchone()
 
     if result_query_exists_table:
         _log(f"A tabela '{TABLE_NAME}' existe.")
@@ -68,7 +68,7 @@ def source_columns_and_types_table(cursor_source):
     return result_query_columns_table
 
 
-def create_table(conn_destino, columns, types):
+def create_table(conn_destiny, columns, types):
 
     try:
         values_table = ''
@@ -80,10 +80,10 @@ def create_table(conn_destino, columns, types):
 
         query_create_table = f"CREATE TABLE IF NOT EXISTS {TABLE_NAME} ({values_table});"
 
-        cursor_destino = conn_destino.cursor()
+        cursor_destiny = conn_destiny.cursor()
 
-        cursor_destino.execute(query_create_table)
-        conn_destino.commit()
+        cursor_destiny.execute(query_create_table)
+        conn_destiny.commit()
         return
     except Exception as e:
         logging.error(f"Ocorreu um erro: {str(e)}")
@@ -118,7 +118,7 @@ def rasa_data_ingestion_dag():
     def verify_and_create_table():
         try:
 
-            check_table = verify_if_exists_table_and_schema(conn_destino)
+            check_table = verify_if_exists_table_and_schema(conn_destiny)
 
             result_query_columns_and_types_table = source_columns_and_types_table(cursor_source)
 
@@ -128,7 +128,7 @@ def rasa_data_ingestion_dag():
             types = [item[1] for item in result_query_columns_and_types_table]
 
             if check_table == False:
-                create_table(conn_destino, columns, types)
+                create_table(conn_destiny, columns, types)
             else:
                 return
 
