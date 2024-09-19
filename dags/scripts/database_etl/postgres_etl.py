@@ -80,7 +80,7 @@ class PostgresETL(BaseETL):
 
                 dtype_mapping = {
                     "int64": "BIGINT",
-                    "float64": "FLOAT",
+                    "float64": "DOUBLE_PRECISION",
                     "object": "TEXT",
                     "bool": "BOOLEAN",
                     "datetime64[ns]": "TIMESTAMP",
@@ -97,7 +97,7 @@ class PostgresETL(BaseETL):
 
                 if df_columns_str != target_columns_str:
                     raise ValueError(
-                        f"Incompatibilidade de esquema entre o DataFrame transformado e a tabela de destino {target_table}:\nDataFrame:\t\t {df_columns_str}\nTabela destino:\t\t: {target_columns_str}"
+                        f"Incompatibilidade de esquema entre o DataFrame transformado e a tabela de destino {target_table}:\nDataFrame:\t\t {df_columns_str}\nTabela destino:\t\t {target_columns_str}"
                     )
                 else:
                     logging.info(
