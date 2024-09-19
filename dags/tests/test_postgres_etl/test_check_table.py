@@ -199,3 +199,51 @@ def test_check_table_schema_incompatible_column_type(mock_postgres_hook, mock_in
         # Espera que um ValueError seja lançado devido à incompatibilidade de esquema
         with pytest.raises(ValueError, match="Incompatibilidade de esquema"):
             etl.check_table("target_table", df_mock)
+
+@pytest.mark.check_table
+@mock.patch("scripts.database_etl.postgres_etl.inspect")
+@mock.patch("scripts.database_etl.postgres_etl.PostgresHook")
+def test_check_table_unmapped_dtype(mock_postgres_hook, mock_inspect):
+    """
+    Should raise an error if a DataFrame contains a column with an unmapped dtype.
+    """
+    
+    # Mockar o engine de retorno
+    mock_postgres_hook.return_value.get_sqlalchemy_engine.return_value = mock.MagicMock()
+    engine = mock_postgres_hook.return_value.get_sqlalchemy_engine()
+
+    # Criar a instância do PostgresETL
+    etl = PostgresETL(
+        source_conn_id="source_conn",
+        target_conn_id="target_conn",
+        source_schema="source_schema",
+        target_schema="target_schema"
+    )
+
+    # Simular o retorno do inspector que indica que a tabela já existe
+    inspector = mock_inspect.return_value
+    inspector.has_table.return_value = True
+
+    # Simular colunas da tabela existente com objetos que possuem `name` e `type`
+    mock_column_id = mock.Mock(name="id")
+    mock_column_id.name = "id"
+    mock_column_id.type = "BIGINT"
+    
+    mock_column_name = mock.Mock(name="name")
+    mock_column_name.name = "name"
+    mock_column_name.type = "TEXT"
+
+    # Mock para Table e MetaData
+    with mock.patch("scripts.database_etl.postgres_etl.Table") as mock_table:
+        mock_table.return_value.columns = [mock_column_id, mock_column_name]
+
+        # Simular DataFrame onde uma das colunas tem um tipo não mapeado (complex128)
+        df_mock = pd.DataFrame({
+            "id": pd.Series([1], dtype="int64"),
+            "name": pd.Series(["test"], dtype="object"),
+            "unmapped_column": pd.Series([1+2j], dtype="complex128")  # Tipo não mapeado
+        })
+
+        # Espera que um erro seja lançado devido ao tipo não mapeado
+        with pytest.raises(KeyError, match="complex128"):
+            etl.check_table("target_table", df_mock)

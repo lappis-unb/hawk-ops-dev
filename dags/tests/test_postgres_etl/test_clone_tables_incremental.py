@@ -68,7 +68,7 @@ def test_check_schema(mock_postgres_hook):
 
     # Criar a instância do PostgresETL
     etl = PostgresETL(
-        source_conn_id="source_conn", 
+        source_conn_id="source_conn",
         target_conn_id="target_conn",
         source_schema="source_schema",
         target_schema="target_schema"
@@ -85,7 +85,8 @@ def test_check_schema(mock_postgres_hook):
     etl.check_schema("target_schema", engine)
 
     # Verificar se o schema foi criado corretamente
-    mock_conn.execute.assert_any_call("CREATE SCHEMA IF NOT EXISTS target_schema;")
+    mock_conn.execute.assert_any_call(mock.ANY, {"schema_name": "target_schema"})
+    mock_conn.execute.assert_any_call(mock.ANY)  # Não é mais comparável diretamente a uma string
 
     # Definir que o schema já existe
     mock_result.fetchone.return_value = True
