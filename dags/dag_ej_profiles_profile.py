@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from scripts.database_etl.base import SourceTables
 from scripts.database_etl import PostgresETL
 from scripts.database_etl.utils import setup_logging
-from scripts.transformations import transformation_ej_profiles_profile
+from scripts.transformations.transformation_ej_profiles_profile import transformation_ej_profiles_and_ej_users
 
 default_args = {
     "owner": "Eric Silveira",
@@ -22,10 +22,10 @@ default_args = {
     default_args=default_args,
     description="DAG para executar operações ETL da tabela ej_profiles_profile",
     schedule_interval="@daily",
-    start_date=datetime(2023, 10, 1),
+    start_date=datetime(2023, 10, 19),
     catchup=False,
 )
-def clone_rasa_events():
+def clone_rasa_profiles():
 
     @task()
     def clone():
@@ -33,17 +33,19 @@ def clone_rasa_events():
         logging.info("Configurando ETL")
         setup_logging()
 
-        source_conn_id = "rasa_db_airflow"
-        target_conn_id = "rasa_db_airflow"
+        source_conn_id = "conn_db_rasa"
+        target_conn_id = "conn_db_rasa"
         source_schema = "public"
         target_schema = "public"
 
         source_tables: SourceTables = []
 
-        events = SourceTables("events", "id", "id")
-        source_tables.append(events)
+        profiles = SourceTables(name="profiles", key_column="user_id", foreign_key="user_id")
+        user = SourceTables(name="users", key_column="user_id", foreign_key="id")
+        source_tables.append(profiles)
+        source_tables.append(user)
 
-        target_table = "events_target"
+        target_table = "users_with_profiles_target"
         key_column = "id"
 
         etl = PostgresETL(
@@ -54,12 +56,12 @@ def clone_rasa_events():
             chunk_size=50000,
             max_threads=10,
             multithreading=True,
-            transform_func=transformation_ej_profiles_profile,
+            transform_func=transformation_ej_profiles_and_ej_users,
         )
 
-        etl.clone_tables_incremental(source_tables, target_table, key_column)
+        etl.clone_tables_incremental(source_tables, target_table)
 
     clone()
 
 
-dag = clone_rasa_events()
+dag = clone_rasa_profiles()
