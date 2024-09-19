@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from scripts.database_etl.base import SourceTables
 from scripts.database_etl import PostgresETL
 from scripts.database_etl.utils import setup_logging
-from dags.scripts.transformations import transformation_ej_profiles_profile
+from scripts.transformations import transformation_ej_profiles_profile
 
 default_args = {
     "owner": "Eric Silveira",
