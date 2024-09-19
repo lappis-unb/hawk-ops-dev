@@ -159,7 +159,7 @@ class PostgresETL(BaseETL):
             logging.error(f"Erro ao processar chunk com offset {offset}", exc_info=True)
             raise e
 
-    def process_chunk_replace(self, dfs_chunk, target_table, idx):
+    def process_chunk_replace(self, dfs_chunk, target_table, idx, offset):
         try:
             transformed_df = self.transform_data(dfs_chunk)
             if not transformed_df.empty:
@@ -171,11 +171,11 @@ class PostgresETL(BaseETL):
                     index=False,
                     method="multi",
                 )
-                logging.info(f"Chunk {idx} escrito com sucesso.")
+                logging.info(f"Chunk com offset {offset} e índice {idx} escrito com sucesso.")
             else:
-                logging.info(f"Nenhum dado para escrever no chunk {idx}.")
+                logging.info(f"Nenhum dado para escrever no chunk com offset {offset} e índice {idx}.")
         except Exception as e:
-            logging.error(f"Erro ao escrever chunk {idx}", exc_info=True)
+            logging.error(f"Erro ao escrever chunk com offset {offset} e índice {idx}", exc_info=True)
             raise e
 
     def clone_tables_incremental(
@@ -283,6 +283,21 @@ class PostgresETL(BaseETL):
             transformed_df_sample = self.transform_data(dfs_sample)
             self.check_table(target_table, transformed_df_sample)
 
+            total_rows_per_table = {}
+            with self.source_engine.connect() as source_conn:
+                for table in source_tables:
+                    table_name = table.name
+                    result = source_conn.execute(
+                        text(f"SELECT COUNT(*) FROM {table_name}")
+                    )
+                    total_rows = result.scalar()
+                    total_rows_per_table[table_name] = total_rows
+                    logging.info(f"Total de registros na tabela {table_name}: {total_rows}")
+
+            if sum(total_rows_per_table.values()) == 0:
+                logging.info("Nenhum novo registro para transferir.")
+                return
+
             chunk_iters = []
             for table in source_tables:
                 table_name = table.name
@@ -295,6 +310,7 @@ class PostgresETL(BaseETL):
                 chunk_iters.append(chunk_iter)
 
             idx = 0
+            offset = 0
             while True:
                 dfs_chunk = []
                 all_empty = True
@@ -309,8 +325,9 @@ class PostgresETL(BaseETL):
                 if all_empty:
                     break
 
-                self.process_chunk_replace(dfs_chunk, target_table, idx)
+                self.process_chunk_replace(dfs_chunk, target_table, idx, offset)
                 idx += 1
+                offset += self.chunk_size
 
             logging.info(
                 f"Clonagem completa das tabelas {source_tables} concluída com sucesso."
