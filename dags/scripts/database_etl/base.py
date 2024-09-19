@@ -55,7 +55,7 @@ class BaseETL(ABC):
         pass
 
     @abstractmethod
-    def verify_and_create_table(self, target_table, transformed_df):
+    def check_table(self, target_table, transformed_df):
         pass
 
     @abstractmethod

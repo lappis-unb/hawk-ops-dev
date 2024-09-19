@@ -51,7 +51,7 @@ class PostgresETL(BaseETL):
                 conn.execute(text(f"CREATE SCHEMA {schema_name}"))
                 logging.info(f"Schema {schema_name} criado.")
 
-    def verify_and_create_table(self, target_table, transformed_df):
+    def check_table(self, target_table, transformed_df):
         inspector = inspect(self.target_engine)
         try:
             if inspector.has_table(target_table, schema=self.target_schema):
@@ -99,7 +99,9 @@ class PostgresETL(BaseETL):
                     if_exists="fail",
                     index=False,
                 )
-                logging.info(f"Tabela {target_table} criada no schema de destino.")
+                logging.info(
+                    f"Tabela {target_table} criada no schema {self.target_schema}."
+                )
         except Exception as e:
             logging.error(
                 f"Erro ao verificar ou criar a tabela {target_table}", exc_info=True
@@ -186,7 +188,7 @@ class PostgresETL(BaseETL):
                     dfs_sample.append(df_sample)
 
             transformed_df_sample = self.transform_data(dfs_sample)
-            self.verify_and_create_table(target_table, transformed_df_sample)
+            self.check_table(target_table, transformed_df_sample)
 
             with self.target_engine.connect() as target_conn:
                 result = target_conn.execute(
@@ -273,7 +275,7 @@ class PostgresETL(BaseETL):
                     dfs_sample.append(df_sample)
 
             transformed_df_sample = self.transform_data(dfs_sample)
-            self.verify_and_create_table(target_table, transformed_df_sample)
+            self.check_table(target_table, transformed_df_sample)
 
             chunk_iters = []
             for table_name in source_tables:
