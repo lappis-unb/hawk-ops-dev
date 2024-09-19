@@ -39,25 +39,29 @@ class PostgresETL(BaseETL):
             transform_func,
         )
 
-def check_schema(self, schema_name, engine):
-    with engine.connect() as conn:
+    def check_schema(self, schema_name, engine):
 
-        query_check_schema = """
-            SELECT schema_name
-            FROM information_schema.schemata
-            WHERE schema_name = :schema_name;
-        """
+        try:
+            with engine.connect() as conn:
 
-        result = conn.execute(query_check_schema, {"schema_name": schema_name})
+                query_check_schema = """
+                    SELECT schema_name
+                    FROM information_schema.schemata
+                    WHERE schema_name = %s;
+                """
 
-        if not result.fetchone():
-            query_create_schema = f"CREATE SCHEMA IF NOT EXISTS {schema_name};"
-            conn.execute(query_create_schema)
-            logging.info(f"Schema {schema_name} criado com sucesso!")
-        else:
-            logging.info(f"Schema {schema_name} já existe.")
+                result = conn.execute(query_check_schema, (schema_name,))
 
-            
+                if not result.fetchone():
+                    query_create_schema = f"CREATE SCHEMA IF NOT EXISTS {schema_name};"
+                    conn.execute(query_create_schema)
+                    logging.info(f"Schema {schema_name} criado com sucesso!")
+                else:
+                    logging.info(f"Schema {schema_name} já existe.")
+
+        except Exception as e:
+            logging.error(f"Erro na criação do schema!", exc_info=True)
+            raise e    
                 
 
     def check_table(self, target_table, transformed_df):
