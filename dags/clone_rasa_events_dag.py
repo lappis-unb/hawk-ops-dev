@@ -35,8 +35,8 @@ def clone_rasa_events():
         source_schema = "public"
         target_schema = "public"
 
-        source_tables = ["table1", "table2"]
-        target_table = "merged_table"
+        source_tables = ["events"]
+        target_table = "events_target"
         key_column = "id"
 
         etl = PostgresETL(
