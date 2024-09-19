@@ -1,120 +1,83 @@
+from dataclasses import dataclass
 import logging
 import threading
+from abc import ABC, abstractmethod
 import pandas as pd
-from sqlalchemy import text
 
 
-class BaseETL:
+@dataclass
+class SourceTables:
+    name: str
+    key_column: str
+    foreign_key: str
+
+
+class BaseETL(ABC):
     def __init__(
         self,
         source_engine,
         target_engine,
         chunk_size=100000,
         max_threads=5,
+        multithreading=True,
+        transform_func=None,
     ):
         self.source_engine = source_engine
         self.target_engine = target_engine
         self.chunk_size = chunk_size
         self.max_threads = max_threads
+        self.multithreading = multithreading
+        self.transform_func = transform_func
 
-    def clone_table_incremental(self, table_name_source, table_name_target, key_column):
-        logging.info(f"Iniciando clonagem incremental da tabela {table_name_source}")
-        # Implementação do método (pode ser genérico ou abstrato)
+    def transform_data(self, dfs):
+        if self.transform_func:
+            return self.transform_func(dfs)
+        else:
+            # Default behavior is to return the first DataFrame unmodified
+            return dfs[0]
+
+    def execute_tasks(self, tasks):
+        if self.multithreading:
+            # Use multithreading
+            threads = []
+            for task in tasks:
+                t = threading.Thread(target=task["function"], args=task["args"])
+                threads.append(t)
+                t.start()
+
+                # Limit the number of simultaneous threads
+                if len(threads) >= self.max_threads:
+                    for t in threads:
+                        t.join()
+                    threads = []
+            # Wait for remaining threads
+            for t in threads:
+                t.join()
+        else:
+            # Execute tasks sequentially
+            for task in tasks:
+                task["function"](*task["args"])
+
+    @abstractmethod
+    def check_schema(self, schema_name, engine):
         pass
 
-    def clone_table_replace(self, table_name_source, table_name_target):
-        logging.info(f"Iniciando clonagem completa da tabela {table_name_source}")
-        # Implementação do método (pode ser genérico ou abstrato)
+    @abstractmethod
+    def check_table(self, target_table, transformed_df):
         pass
 
-    def execute_custom_query(self, query, params=None, target=True):
-        engine = self.target_engine if target else self.source_engine
-        try:
-            with engine.connect() as conn:
-                result = conn.execute(text(query), params or {})
-                logging.info("Consulta executada com sucesso")
-                return result.fetchall()
-        except Exception as e:
-            logging.error("Erro ao executar a consulta customizada", exc_info=True)
-            raise e
+    @abstractmethod
+    def process_chunk(self, *args, **kwargs):
+        pass
 
-    def transform_data(self, df):
-        # Método genérico para transformações
-        return df
+    @abstractmethod
+    def process_chunk_replace(self, *args, **kwargs):
+        pass
 
-    def check_schema(self, schema, engine):
+    @abstractmethod
+    def clone_tables_incremental(self, *args, **kwargs):
+        pass
 
-        try:
-            with engine.connect() as conn:
-
-                verify_exists_schema = f"""
-                    SELECT schema_name
-                    FROM information_schema.schemata
-                    WHERE schema_name = '{schema}';
-                """
-            
-                if verify_exists_schema:
-                    logging.info(f"Schema {schema} já existe!")
-                    return True
-                else:
-                    query_exists_schema = f"CREATE SCHEMA IF NOT EXISTS {schema};"
-                    result = conn.execute(query_exists_schema)
-                    if result: 
-                        logging.info(f"Schema {schema} criado com sucesso!")
-                    else:
-                        logging.error(f"Erro na criação do schema {schema}!")
-                        return False
-
-        except Exception as e:
-            logging.error("Erro ao se conectar com o banco de dados", exc_info=True)
-            raise e
-        
-    
-    def verify_and_create_table(self, schema, table_name_source, table_name_target, engine):
-
-        try:
-            with engine.connect() as conn:
-                query_exists_schema = f"""
-                    SELECT 1 
-                    FROM information_schema.tables 
-                    WHERE table_schema = '{schema}'
-                    AND table_name = '{table_name_target}';
-                """
-
-                result = conn.execute(query_exists_schema)
-                result_query_exists_table = result.fetchone()
-            
-                if result_query_exists_table:
-                   return
-                else:
-                    query_columns_table = f"""
-                        SELECT column_name, data_type
-                        FROM information_schema.columns
-                        WHERE table_name = '{table_name_source}'
-                        ORDER BY ordinal_position;
-                    """
-                    result = conn.execute(query_columns_table)
-                    result_query_columns_and_types_table = result.fetchall()
-
-                    columns = [item[0] for item in result_query_columns_and_types_table]
-                    types = [item[1] for item in result_query_columns_and_types_table]
-
-                    try:
-                        values_table = ''
-
-                        for names, tipes_columns in zip(columns, types):
-                            values_table = values_table + f"{names} {tipes_columns}, "
-
-                        values_table = values_table[:-2]
-
-                        query_create_table = f"CREATE TABLE IF NOT EXISTS {schema}.{table_name_target} ({values_table});"
-
-                        conn.execute(query_create_table)
-
-                        return
-                    except Exception as e:
-                        logging.error(f"Ocorreu um erro: {str(e)}")
- 
-        except Exception as e:
-            logging.error("Erro ao se conectar com o banco de dados", exc_info=True)
-            raise e
+    @abstractmethod
+    def clone_tables_replace(self, *args, **kwargs):
+        pass
