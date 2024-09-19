@@ -1,7 +1,15 @@
+from dataclasses import dataclass
 import logging
 import threading
 from abc import ABC, abstractmethod
 import pandas as pd
+
+
+@dataclass
+class SourceTables:
+    name: str
+    key_column: str
+    foreign_key: str
 
 
 class BaseETL(ABC):

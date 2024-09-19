@@ -1,6 +1,7 @@
 import logging
 from airflow.decorators import dag, task
 from datetime import datetime, timedelta
+from scripts.database_etl.base import SourceTables
 from scripts.database_etl import PostgresETL
 from scripts.database_etl.utils import setup_logging
 
@@ -27,6 +28,7 @@ def clone_rasa_events():
 
     @task()
     def clone():
+
         logging.info("Configurando ETL")
         setup_logging()
 
@@ -35,7 +37,11 @@ def clone_rasa_events():
         source_schema = "public"
         target_schema = "public"
 
-        source_tables = ["events"]
+        source_tables: SourceTables = []
+
+        events = SourceTables("events", "id", "id")
+        source_tables.append(events)
+
         target_table = "events_target"
         key_column = "id"
 

@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import text, MetaData, Table, inspect
 from sqlalchemy.exc import NoSuchTableError
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from .base import BaseETL
+from .base import BaseETL, SourceTables
 
 
 class PostgresETL(BaseETL):
@@ -66,9 +66,9 @@ class PostgresETL(BaseETL):
                 df_columns = transformed_df.dtypes.to_dict()
 
                 dtype_mapping = {
-                    "int64": "INTEGER",
+                    "int64": "BIGINT",
                     "float64": "FLOAT",
-                    "object": "VARCHAR",
+                    "object": "TEXT",
                     "bool": "BOOLEAN",
                     "datetime64[ns]": "TIMESTAMP",
                 }
@@ -84,7 +84,7 @@ class PostgresETL(BaseETL):
 
                 if df_columns_str != target_columns_str:
                     raise ValueError(
-                        f"Incompatibilidade de esquema entre o DataFrame transformado e a tabela de destino {target_table}"
+                        f"Incompatibilidade de esquema entre o DataFrame transformado e a tabela de destino {target_table}:\nDataFrame:\t\t {df_columns_str}\nTabela destino:\t\t: {target_columns_str}"
                     )
                 else:
                     logging.info(
@@ -108,11 +108,14 @@ class PostgresETL(BaseETL):
             )
             raise e
 
-    def process_chunk(self, offset, last_keys, source_tables, target_table, key_column):
+    def process_chunk(
+        self, offset, last_keys_target, source_tables, target_table, key_column
+    ):
         try:
             dfs = []
             with self.source_engine.connect() as source_conn:
-                for idx, table_name in enumerate(source_tables):
+                for idx, table in enumerate(source_tables):
+                    table_name = table.name
                     query = text(
                         f"""
                         SELECT * FROM {table_name}
@@ -125,10 +128,13 @@ class PostgresETL(BaseETL):
                         query,
                         source_conn,
                         params={
-                            "last_key": last_keys[idx],
+                            "last_key": last_keys_target[table.foreign_key],
                             "limit": self.chunk_size,
                             "offset": offset,
                         },
+                    )
+                    logging.info(
+                        f"Chunk com offset {offset} da tabela {table_name} lido."
                     )
                     dfs.append(df_chunk)
 
@@ -172,7 +178,9 @@ class PostgresETL(BaseETL):
             logging.error(f"Erro ao escrever chunk {idx}", exc_info=True)
             raise e
 
-    def clone_tables_incremental(self, source_tables, target_table, key_column):
+    def clone_tables_incremental(
+        self, source_tables: SourceTables, target_table, key_column
+    ):
         logging.info(f"Iniciando clonagem incremental das tabelas {source_tables}.")
 
         try:
@@ -180,7 +188,8 @@ class PostgresETL(BaseETL):
 
             dfs_sample = []
             with self.source_engine.connect() as source_conn:
-                for table_name in source_tables:
+                for table in source_tables:
+                    table_name = table.name
                     query = text(f"SELECT * FROM {table_name} LIMIT :limit")
                     df_sample = pd.read_sql_query(
                         query, source_conn, params={"limit": 10}
@@ -191,35 +200,31 @@ class PostgresETL(BaseETL):
             self.check_table(target_table, transformed_df_sample)
 
             with self.target_engine.connect() as target_conn:
-                result = target_conn.execute(
-                    text(
-                        f"SELECT MAX({key_column}) FROM {self.target_schema}.{target_table};"
+                last_key_target = dict()
+                for table in source_tables:
+                    result = target_conn.execute(
+                        text(
+                            f"SELECT MAX({table.foreign_key}) FROM {self.target_schema}.{target_table};"
+                        )
                     )
-                )
-                last_key_target = result.scalar() or 0
-                logging.info(f"Último valor de chave no destino: {last_key_target}")
+                    last_key_target[table.foreign_key] = result.scalar() or 0
+                    logging.info(f"Último valor de chave no destino: {last_key_target}")
 
-            last_keys = []
             total_rows = 0
             with self.source_engine.connect() as source_conn:
-                for table_name in source_tables:
-                    result = source_conn.execute(
-                        text(f"SELECT MAX({key_column}) FROM {table_name};")
-                    )
-                    last_key_source = result.scalar() or 0
-                    last_keys.append(last_key_source)
-
-                    result = source_conn.execute(
-                        text(
-                            f"SELECT COUNT(*) FROM {table_name} WHERE {key_column} > :last_key"
-                        ),
-                        {"last_key": last_key_target},
-                    )
-                    total_rows_table = result.scalar()
-                    total_rows += total_rows_table
-                    logging.info(
-                        f"Total de registros a serem transferidos de {table_name}: {total_rows_table}"
-                    )
+                with self.target_engine.connect() as target_conn:
+                    for table in source_tables:
+                        result = source_conn.execute(
+                            text(
+                                f"SELECT COUNT(*) FROM {table_name} WHERE {key_column} > :last_key"
+                            ),
+                            {"last_key": last_key_target[table.foreign_key]},
+                        )
+                        total_rows_table = result.scalar()
+                        total_rows += total_rows_table
+                        logging.info(
+                            f"Total de registros a serem transferidos de {table_name}: {total_rows_table}"
+                        )
 
             if total_rows == 0:
                 logging.info("Nenhum novo registro para transferir.")
@@ -235,7 +240,7 @@ class PostgresETL(BaseETL):
                         "function": self.process_chunk,
                         "args": (
                             offset,
-                            last_keys,
+                            last_key_target,
                             source_tables,
                             target_table,
                             key_column,
@@ -253,7 +258,7 @@ class PostgresETL(BaseETL):
             logging.error("Erro ao clonar tabelas incrementalmente.", exc_info=True)
             raise e
 
-    def clone_tables_replace(self, source_tables, target_table):
+    def clone_tables_replace(self, source_tables: SourceTables, target_table):
         logging.info(f"Iniciando clonagem completa das tabelas {source_tables}.")
 
         try:
@@ -267,7 +272,8 @@ class PostgresETL(BaseETL):
 
             dfs_sample = []
             with self.source_engine.connect() as source_conn:
-                for table_name in source_tables:
+                for table in source_tables:
+                    table_name = table.name
                     query = text(f"SELECT * FROM {table_name} LIMIT :limit")
                     df_sample = pd.read_sql_query(
                         query, source_conn, params={"limit": 10}
@@ -278,7 +284,8 @@ class PostgresETL(BaseETL):
             self.check_table(target_table, transformed_df_sample)
 
             chunk_iters = []
-            for table_name in source_tables:
+            for table in source_tables:
+                table_name = table.name
                 chunk_iter = pd.read_sql_table(
                     table_name,
                     self.source_engine,
