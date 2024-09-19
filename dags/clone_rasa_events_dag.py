@@ -35,28 +35,21 @@ def clone_rasa_events():
         source_schema = "public"
         target_schema = "public"
 
-        table_name_source = "events"
-        table_name_target = "events_target"
+        source_tables = ["table1", "table2"]
+        target_table = "merged_table"
         key_column = "id"
 
-
         etl = PostgresETL(
-            source_conn_id = source_conn_id,
-            target_conn_id = target_conn_id,
-            source_schema = source_schema,
-            target_schema = target_schema,
-            chunk_size=100000,
-            max_threads=5,
+            source_conn_id=source_conn_id,
+            target_conn_id=target_conn_id,
+            source_schema=source_schema,
+            target_schema=target_schema,
+            chunk_size=50000,
+            max_threads=10,
+            multithreading=True,
         )
 
-        logging.info("ETL configurado com sucesso")
-        logging.info("Clonando tabela de eventos do Rasa")
-
-        etl.clone_table_incremental(
-            table_name_source=table_name_source,
-            table_name_target=table_name_target,
-            key_column=key_column,
-        )
+        etl.clone_tables_incremental(source_tables, target_table, key_column)
 
     clone()
 
