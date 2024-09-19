@@ -24,11 +24,9 @@ class PostgresETL(BaseETL):
         self.source_schema = source_schema
         self.target_schema = target_schema
 
-        # Initialize hooks
         self.source_hook = PostgresHook(postgres_conn_id=source_conn_id)
         self.target_hook = PostgresHook(postgres_conn_id=target_conn_id)
 
-        # Initialize engines
         source_engine = self.source_hook.get_sqlalchemy_engine()
         target_engine = self.target_hook.get_sqlalchemy_engine()
 
@@ -51,14 +49,12 @@ class PostgresETL(BaseETL):
             )
             if not result.fetchone():
                 conn.execute(text(f"CREATE SCHEMA {schema_name}"))
-                logging.info(f"Schema {schema_name} created.")
+                logging.info(f"Schema {schema_name} criado.")
 
     def verify_and_create_table(self, target_table, transformed_df):
         inspector = inspect(self.target_engine)
         try:
-            # Check if the table exists
             if inspector.has_table(target_table, schema=self.target_schema):
-                # Reflect the target table
                 metadata = MetaData()
                 table = Table(
                     target_table,
@@ -66,11 +62,9 @@ class PostgresETL(BaseETL):
                     autoload_with=self.target_engine,
                     schema=self.target_schema,
                 )
-                # Table exists, compare schemas
                 target_columns = {col.name: col.type for col in table.columns}
                 df_columns = transformed_df.dtypes.to_dict()
 
-                # Map pandas dtypes to simple types
                 dtype_mapping = {
                     "int64": "INTEGER",
                     "float64": "FLOAT",
@@ -90,15 +84,14 @@ class PostgresETL(BaseETL):
 
                 if df_columns_str != target_columns_str:
                     raise ValueError(
-                        f"Schema mismatch between transformed DataFrame and target table {target_table}"
+                        f"Incompatibilidade de esquema entre o DataFrame transformado e a tabela de destino {target_table}"
                     )
                 else:
-                    logging.info(f"Target table {target_table} schema is compatible.")
+                    logging.info(
+                        f"Esquema da tabela de destino {target_table} é compatível."
+                    )
             else:
-                # Table does not exist, create it
-                logging.info(
-                    f"Target table {target_table} does not exist. Creating it."
-                )
+                logging.info(f"Tabela de destino {target_table} não existe. Criando-a.")
                 transformed_df.head(0).to_sql(
                     target_table,
                     self.target_engine,
@@ -106,10 +99,10 @@ class PostgresETL(BaseETL):
                     if_exists="fail",
                     index=False,
                 )
-                logging.info(f"Table {target_table} created in target schema.")
+                logging.info(f"Tabela {target_table} criada no schema de destino.")
         except Exception as e:
             logging.error(
-                f"Error in verifying or creating table {target_table}", exc_info=True
+                f"Erro ao verificar ou criar a tabela {target_table}", exc_info=True
             )
             raise e
 
@@ -136,9 +129,9 @@ class PostgresETL(BaseETL):
                         },
                     )
                     dfs.append(df_chunk)
-            # Apply transformation
+
             transformed_df = self.transform_data(dfs)
-            # Write transformed data to the target table
+
             with self.target_engine.connect() as target_conn:
                 if not transformed_df.empty:
                     transformed_df.to_sql(
@@ -149,18 +142,18 @@ class PostgresETL(BaseETL):
                         index=False,
                         method="multi",
                     )
-                    logging.info(f"Chunk with offset {offset} processed successfully")
+                    logging.info(f"Chunk com offset {offset} processado com sucesso.")
                 else:
-                    logging.info(f"No data to write for chunk with offset {offset}")
+                    logging.info(
+                        f"Nenhum dado para escrever no chunk com offset {offset}."
+                    )
         except Exception as e:
-            logging.error(f"Error processing chunk with offset {offset}", exc_info=True)
+            logging.error(f"Erro ao processar chunk com offset {offset}", exc_info=True)
             raise e
 
     def process_chunk_replace(self, dfs_chunk, target_table, idx):
         try:
-            # Apply transformation
             transformed_df = self.transform_data(dfs_chunk)
-            # Write transformed data to the target table
             if not transformed_df.empty:
                 transformed_df.to_sql(
                     target_table,
@@ -170,22 +163,19 @@ class PostgresETL(BaseETL):
                     index=False,
                     method="multi",
                 )
-                logging.info(f"Chunk {idx} written successfully")
+                logging.info(f"Chunk {idx} escrito com sucesso.")
             else:
-                logging.info(f"No data to write for chunk {idx}")
+                logging.info(f"Nenhum dado para escrever no chunk {idx}.")
         except Exception as e:
-            logging.error(f"Error writing chunk {idx}", exc_info=True)
+            logging.error(f"Erro ao escrever chunk {idx}", exc_info=True)
             raise e
 
     def clone_tables_incremental(self, source_tables, target_table, key_column):
-        logging.info(f"Starting incremental clone of tables {source_tables}")
+        logging.info(f"Iniciando clonagem incremental das tabelas {source_tables}.")
 
         try:
-            # Check if schema exists in the target database
             self.check_schema(self.target_schema, self.target_engine)
 
-            # Get a sample transformed DataFrame to verify or create the target table
-            # Read a small sample from source tables
             dfs_sample = []
             with self.source_engine.connect() as source_conn:
                 for table_name in source_tables:
@@ -194,12 +184,10 @@ class PostgresETL(BaseETL):
                         query, source_conn, params={"limit": 10}
                     )
                     dfs_sample.append(df_sample)
-            # Apply transformation
+
             transformed_df_sample = self.transform_data(dfs_sample)
-            # Verify and create target table if necessary
             self.verify_and_create_table(target_table, transformed_df_sample)
 
-            # Get last key from target and count total rows from each source table
             with self.target_engine.connect() as target_conn:
                 result = target_conn.execute(
                     text(
@@ -207,20 +195,18 @@ class PostgresETL(BaseETL):
                     )
                 )
                 last_key_target = result.scalar() or 0
-                logging.info(f"Last key value in target: {last_key_target}")
+                logging.info(f"Último valor de chave no destino: {last_key_target}")
 
             last_keys = []
             total_rows = 0
             with self.source_engine.connect() as source_conn:
                 for table_name in source_tables:
-                    # Get last key from source table
                     result = source_conn.execute(
                         text(f"SELECT MAX({key_column}) FROM {table_name};")
                     )
                     last_key_source = result.scalar() or 0
                     last_keys.append(last_key_source)
 
-                    # Count total rows to transfer from this table
                     result = source_conn.execute(
                         text(
                             f"SELECT COUNT(*) FROM {table_name} WHERE {key_column} > :last_key"
@@ -230,17 +216,15 @@ class PostgresETL(BaseETL):
                     total_rows_table = result.scalar()
                     total_rows += total_rows_table
                     logging.info(
-                        f"Total records to be transferred from {table_name}: {total_rows_table}"
+                        f"Total de registros a serem transferidos de {table_name}: {total_rows_table}"
                     )
 
             if total_rows == 0:
-                logging.info("No new records to transfer.")
+                logging.info("Nenhum novo registro para transferir.")
                 return
 
-            # Calculate the number of chunks
             num_chunks = (total_rows // self.chunk_size) + 1
 
-            # Prepare tasks for execution
             tasks = []
             for i in range(num_chunks):
                 offset = i * self.chunk_size
@@ -257,32 +241,28 @@ class PostgresETL(BaseETL):
                     }
                 )
 
-            # Execute tasks
             self.execute_tasks(tasks)
 
             logging.info(
-                f"Incremental cloning of tables {source_tables} completed successfully"
+                f"Clonagem incremental das tabelas {source_tables} concluída com sucesso."
             )
 
         except Exception as e:
-            logging.error("Error cloning tables incrementally", exc_info=True)
+            logging.error("Erro ao clonar tabelas incrementalmente.", exc_info=True)
             raise e
 
     def clone_tables_replace(self, source_tables, target_table):
-        logging.info(f"Starting full clone of tables {source_tables}")
+        logging.info(f"Iniciando clonagem completa das tabelas {source_tables}.")
 
         try:
-            # Remove the target table if it exists
             with self.target_engine.connect() as conn:
                 conn.execute(
                     text(
                         f"DROP TABLE IF EXISTS {self.target_schema}.{target_table} CASCADE"
                     )
                 )
-                logging.info(f"Table {target_table} dropped in target")
+                logging.info(f"Tabela {target_table} removida no destino.")
 
-            # Get a sample transformed DataFrame to verify or create the target table
-            # Read a small sample from source tables
             dfs_sample = []
             with self.source_engine.connect() as source_conn:
                 for table_name in source_tables:
@@ -291,12 +271,10 @@ class PostgresETL(BaseETL):
                         query, source_conn, params={"limit": 10}
                     )
                     dfs_sample.append(df_sample)
-            # Apply transformation
+
             transformed_df_sample = self.transform_data(dfs_sample)
-            # Verify and create target table
             self.verify_and_create_table(target_table, transformed_df_sample)
 
-            # Initialize chunk iterators for all source tables
             chunk_iters = []
             for table_name in source_tables:
                 chunk_iter = pd.read_sql_table(
@@ -326,9 +304,9 @@ class PostgresETL(BaseETL):
                 idx += 1
 
             logging.info(
-                f"Full cloning of tables {source_tables} completed successfully"
+                f"Clonagem completa das tabelas {source_tables} concluída com sucesso."
             )
 
         except Exception as e:
-            logging.error("Error cloning tables completely", exc_info=True)
+            logging.error("Erro ao clonar tabelas completamente.", exc_info=True)
             raise e
