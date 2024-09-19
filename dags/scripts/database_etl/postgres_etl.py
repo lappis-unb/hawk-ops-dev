@@ -80,10 +80,11 @@ class PostgresETL(BaseETL):
 
                 dtype_mapping = {
                     "int64": "BIGINT",
-                    "float64": "FLOAT",
+                    "float64": "DOUBLE_PRECISION",
                     "object": "TEXT",
                     "bool": "BOOLEAN",
                     "datetime64[ns]": "TIMESTAMP",
+                    "datetime64[ns, UTC]": "TIMESTAMP",
                 }
 
                 df_columns_str = {
@@ -97,7 +98,7 @@ class PostgresETL(BaseETL):
 
                 if df_columns_str != target_columns_str:
                     raise ValueError(
-                        f"Incompatibilidade de esquema entre o DataFrame transformado e a tabela de destino {target_table}:\nDataFrame:\t\t {df_columns_str}\nTabela destino:\t\t: {target_columns_str}"
+                        f"Incompatibilidade de esquema entre o DataFrame transformado e a tabela de destino {target_table}:\nDataFrame:\t\t {df_columns_str}\nTabela destino:\t\t {target_columns_str}"
                     )
                 else:
                     logging.info(
@@ -122,7 +123,7 @@ class PostgresETL(BaseETL):
             raise e
 
     def process_chunk(
-        self, offset, last_keys_target, source_tables, target_table, key_column
+        self, offset, last_keys_target, source_tables, target_table
     ):
         try:
             dfs = []
@@ -132,8 +133,8 @@ class PostgresETL(BaseETL):
                     query = text(
                         f"""
                         SELECT * FROM {table_name}
-                        WHERE {key_column} > :last_key
-                        ORDER BY {key_column}
+                        WHERE {table.foreign_key} > :last_key
+                        ORDER BY {table.foreign_key}
                         LIMIT :limit OFFSET :offset
                         """
                     )
@@ -141,7 +142,7 @@ class PostgresETL(BaseETL):
                         query,
                         source_conn,
                         params={
-                            "last_key": last_keys_target[table.foreign_key],
+                            "last_key": last_keys_target[table.key_column],
                             "limit": self.chunk_size,
                             "offset": offset,
                         },
@@ -192,7 +193,7 @@ class PostgresETL(BaseETL):
             raise e
 
     def clone_tables_incremental(
-        self, source_tables: SourceTables, target_table, key_column
+        self, source_tables: SourceTables, target_table
     ):
         logging.info(f"Iniciando clonagem incremental das tabelas {source_tables}.")
 
@@ -217,21 +218,22 @@ class PostgresETL(BaseETL):
                 for table in source_tables:
                     result = target_conn.execute(
                         text(
-                            f"SELECT MAX({table.foreign_key}) FROM {self.target_schema}.{target_table};"
+                            f"SELECT MAX({table.key_column}) FROM {self.target_schema}.{target_table};"
                         )
                     )
-                    last_key_target[table.foreign_key] = result.scalar() or 0
-                    logging.info(f"Último valor de chave no destino: {last_key_target}")
+                    last_key_target[table.key_column] = result.scalar() or 0
+                logging.info(f"Último valor de chave no destino: {last_key_target}")
 
             total_rows = 0
             with self.source_engine.connect() as source_conn:
                 with self.target_engine.connect() as target_conn:
                     for table in source_tables:
+                        table_name = table.name
                         result = source_conn.execute(
                             text(
-                                f"SELECT COUNT(*) FROM {table_name} WHERE {key_column} > :last_key"
+                                f"SELECT COUNT(*) FROM {table_name} WHERE {table.foreign_key} > :last_key"
                             ),
-                            {"last_key": last_key_target[table.foreign_key]},
+                            {"last_key": last_key_target[table.key_column]},
                         )
                         total_rows_table = result.scalar()
                         total_rows += total_rows_table
@@ -256,7 +258,6 @@ class PostgresETL(BaseETL):
                             last_key_target,
                             source_tables,
                             target_table,
-                            key_column,
                         ),
                     }
                 )
