@@ -1,6 +1,7 @@
 import logging
 from airflow.decorators import dag, task
 from datetime import datetime, timedelta
+from scripts.database_etl.base import SourceTables
 from scripts.database_etl import PostgresETL
 from scripts.database_etl.utils import setup_logging
 
@@ -27,6 +28,7 @@ def clone_rasa_events():
 
     @task()
     def clone():
+
         logging.info("Configurando ETL")
         setup_logging()
 
@@ -35,28 +37,25 @@ def clone_rasa_events():
         source_schema = "public"
         target_schema = "public"
 
-        table_name_source = "events"
-        table_name_target = "events_target"
+        source_tables: SourceTables = []
+
+        events = SourceTables("events", "id", "id")
+        source_tables.append(events)
+
+        target_table = "events_target"
         key_column = "id"
 
-
         etl = PostgresETL(
-            source_conn_id = source_conn_id,
-            target_conn_id = target_conn_id,
-            source_schema = source_schema,
-            target_schema = target_schema,
-            chunk_size=100000,
-            max_threads=5,
+            source_conn_id=source_conn_id,
+            target_conn_id=target_conn_id,
+            source_schema=source_schema,
+            target_schema=target_schema,
+            chunk_size=50000,
+            max_threads=10,
+            multithreading=True,
         )
 
-        logging.info("ETL configurado com sucesso")
-        logging.info("Clonando tabela de eventos do Rasa")
-
-        etl.clone_table_incremental(
-            table_name_source=table_name_source,
-            table_name_target=table_name_target,
-            key_column=key_column,
-        )
+        etl.clone_tables_incremental(source_tables, target_table, key_column)
 
     clone()
 
