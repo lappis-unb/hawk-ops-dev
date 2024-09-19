@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from scripts.database_etl.base import SourceTables
 from scripts.database_etl import PostgresETL
 from scripts.database_etl.utils import setup_logging
-from scripts.transformations import transformation_ej_profiles_profile
+from scripts.transformations.transformation_ej_profiles_profile import transformation_ej_profiles_and_ej_users
 
 default_args = {
     "owner": "Eric Silveira",
@@ -40,8 +40,8 @@ def clone_rasa_profiles():
 
         source_tables: SourceTables = []
 
-        profiles = SourceTables(name="profiles", key_column="user_id", foreign_key="id")
-        user = SourceTables(name="users", key_column="id", foreign_key="id")
+        profiles = SourceTables(name="profiles", key_column="user_id", foreign_key="user_id")
+        user = SourceTables(name="users", key_column="user_id", foreign_key="id")
         source_tables.append(profiles)
         source_tables.append(user)
 
@@ -56,9 +56,10 @@ def clone_rasa_profiles():
             chunk_size=50000,
             max_threads=10,
             multithreading=True,
+            transform_func=transformation_ej_profiles_and_ej_users,
         )
 
-        etl.clone_tables_incremental(source_tables, target_table, key_column)
+        etl.clone_tables_incremental(source_tables, target_table)
 
     clone()
 
