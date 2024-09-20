@@ -37,7 +37,6 @@ def test_clone_tables_incremental(
 
     # Mock para source_tables
     source_tables = [mock.Mock(name="source_table_1"), mock.Mock(name="source_table_2")]
-    key_column = "id"
     target_table = "target_table"
 
     # Mock do resultado da função transform_data
@@ -47,7 +46,7 @@ def test_clone_tables_incremental(
     mock_read_sql_query.return_value = mock.MagicMock()
 
     # Chamada do método clone_tables_incremental
-    etl.clone_tables_incremental(source_tables, target_table, key_column)
+    etl.clone_tables_incremental(source_tables, target_table)
 
     # Verificações:
     assert mock_check_schema.call_count == 1, "Should call check_schema exactly once"
@@ -85,8 +84,7 @@ def test_check_schema(mock_postgres_hook):
     etl.check_schema("target_schema", engine)
 
     # Verificar se o schema foi criado corretamente
-    mock_conn.execute.assert_any_call(mock.ANY, {"schema_name": "target_schema"})
-    mock_conn.execute.assert_any_call(mock.ANY)  # Não é mais comparável diretamente a uma string
+    mock_conn.execute.assert_any_call(f"CREATE SCHEMA IF NOT EXISTS target_schema;")
 
     # Definir que o schema já existe
     mock_result.fetchone.return_value = True

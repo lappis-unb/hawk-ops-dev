@@ -1,1 +1,1 @@
-from dags.scripts import *
+from .scripts import *
