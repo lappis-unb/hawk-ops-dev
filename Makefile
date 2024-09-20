@@ -1,4 +1,9 @@
 # Makefile para gerenciar o Docker Compose
+ifeq ($(shell command -v docker-compose),)
+  DOCKER_COMPOSE=docker compose
+else
+  DOCKER_COMPOSE=docker-compose
+endif
 
 # Nome do compose
 COMPOSE_FILE = docker-compose.yaml
@@ -8,10 +13,13 @@ COMPOSE_FILE = docker-compose.yaml
 all: postgres airflow metabase
 
 postgres:
-	docker compose -f $(COMPOSE_FILE) up -d postgres
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) up -d postgres postgres_rasa
 
 airflow:
-	docker compose -f $(COMPOSE_FILE) up -d airflow-webserver airflow-scheduler
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) up -d airflow-webserver airflow-scheduler
 
 metabase:
-	docker compose -f $(COMPOSE_FILE) up -d metabase
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) up -d metabase
+
+status:
+	$(DOCKER_COMPOSE) ps
