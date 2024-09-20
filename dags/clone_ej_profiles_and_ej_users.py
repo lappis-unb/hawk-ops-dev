@@ -18,7 +18,7 @@ default_args = {
 
 
 @dag(
-    dag_id="clone_and_transform_ej_profiles_profile",
+    dag_id="clone_and_transform_ej_profiles_and_ej_users",
     default_args=default_args,
     description="DAG para executar operações ETL da tabela ej_profiles_profile",
     schedule_interval="@daily",
@@ -59,7 +59,7 @@ def clone_rasa_profiles():
             transform_func=transformation_ej_profiles_and_ej_users,
         )
 
-        etl.clone_tables_incremental(source_tables, target_table)
+        etl.clone_tables_replace(source_tables, target_table)
 
     clone()
 
