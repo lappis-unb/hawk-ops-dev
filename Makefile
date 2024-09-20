@@ -19,7 +19,19 @@ airflow:
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) up -d airflow-webserver airflow-scheduler
 
 metabase:
-	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) up -d metabase
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) up -d metabase postgres_rasa
 
+stop-airflow:
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) stop airflow-webserver airflow-scheduler
+
+stop-postgres:
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) stop postgres postgres_rasa
+
+stop-metabase:
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) stop metabase
+
+stop:
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) stop
+	
 status:
 	$(DOCKER_COMPOSE) ps
