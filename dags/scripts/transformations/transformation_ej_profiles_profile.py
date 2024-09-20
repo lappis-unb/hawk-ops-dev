@@ -15,10 +15,9 @@ def transformation_ej_profiles_and_ej_users(dfs):
     ])
 
     for _, data_users in df_users.iterrows():
+        verify_exists_profile = False
         for _, data_profiles in df_profile.iterrows():
-            if data_users['id'] == data_profiles['user_id']:  # Certifique-se de que está usando as chaves corretas
-
-                # Criar um dicionário com os dados da linha
+            if data_users['id'] == data_profiles['user_id']:  
                 new_row = {
                     'user_id': data_users['id'],
                     'phone_number': data_profiles['phone_number'],
@@ -36,9 +35,23 @@ def transformation_ej_profiles_and_ej_users(dfs):
                     'age_range': data_profiles['age_range'],
                     'secret_id': data_users['secret_id']
                 }
-                
-                # Adiciona a nova linha ao DataFrame resultante
+                verify_exists_profile = True
                 results.append(new_row)
+
+        if not verify_exists_profile:
+            new_row = {
+                'user_id': data_users['id'],
+                'password': data_users['password'],
+                'last_login': data_users['last_login'],
+                'is_superuser': data_users['is_superuser'],
+                'is_staff': data_users['is_staff'],
+                'is_active': data_users['is_active'],
+                'data_joined': data_users['date_joined'],
+                'name': data_users['name'],
+                'email': data_users['email'],
+                'secret_id': data_users['secret_id']
+            }
+            results.append(new_row)
 
     df_result_transformation = pd.DataFrame(results)
     logging.info(f"Transformação terminada com sucesso!")
