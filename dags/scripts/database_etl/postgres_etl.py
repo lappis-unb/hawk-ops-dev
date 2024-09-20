@@ -61,8 +61,7 @@ class PostgresETL(BaseETL):
 
         except Exception as e:
             logging.error(f"Erro na criação do schema!", exc_info=True)
-            raise e    
-                
+            raise e
 
     def check_table(self, target_table, transformed_df):
         inspector = inspect(self.target_engine)
@@ -122,9 +121,7 @@ class PostgresETL(BaseETL):
             )
             raise e
 
-    def process_chunk(
-        self, offset, last_keys_target, source_tables, target_table
-    ):
+    def process_chunk(self, offset, last_keys_target, source_tables, target_table):
         try:
             dfs = []
             with self.source_engine.connect() as source_conn:
@@ -185,16 +182,21 @@ class PostgresETL(BaseETL):
                     index=False,
                     method="multi",
                 )
-                logging.info(f"Chunk com offset {offset} e índice {idx} escrito com sucesso.")
+                logging.info(
+                    f"Chunk com offset {offset} e índice {idx} escrito com sucesso."
+                )
             else:
-                logging.info(f"Nenhum dado para escrever no chunk com offset {offset} e índice {idx}.")
+                logging.info(
+                    f"Nenhum dado para escrever no chunk com offset {offset} e índice {idx}."
+                )
         except Exception as e:
-            logging.error(f"Erro ao escrever chunk com offset {offset} e índice {idx}", exc_info=True)
+            logging.error(
+                f"Erro ao escrever chunk com offset {offset} e índice {idx}",
+                exc_info=True,
+            )
             raise e
 
-    def clone_tables_incremental(
-        self, source_tables: SourceTables, target_table
-    ):
+    def clone_tables_incremental(self, source_tables: SourceTables, target_table):
         logging.info(f"Iniciando clonagem incremental das tabelas {source_tables}.")
 
         try:
@@ -306,7 +308,9 @@ class PostgresETL(BaseETL):
                     )
                     total_rows = result.scalar()
                     total_rows_per_table[table_name] = total_rows
-                    logging.info(f"Total de registros na tabela {table_name}: {total_rows}")
+                    logging.info(
+                        f"Total de registros na tabela {table_name}: {total_rows}"
+                    )
 
             if sum(total_rows_per_table.values()) == 0:
                 logging.info("Nenhum novo registro para transferir.")
