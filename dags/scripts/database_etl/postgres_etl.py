@@ -18,6 +18,7 @@ class PostgresETL(BaseETL):
         max_threads=5,
         multithreading=True,
         transform_func=None,
+        custom_query=None,  # Adiciona a query customizada ao construtor
     ):
         self.source_conn_id = source_conn_id
         self.target_conn_id = target_conn_id
@@ -37,6 +38,7 @@ class PostgresETL(BaseETL):
             max_threads,
             multithreading,
             transform_func,
+            custom_query,
         )
 
     def check_schema(self, schema_name, engine):
@@ -288,13 +290,25 @@ class PostgresETL(BaseETL):
 
             dfs_sample = []
             with self.source_engine.connect() as source_conn:
-                for table in source_tables:
-                    table_name = table.name
-                    query = text(f"SELECT * FROM {table_name} LIMIT :limit")
+                # Verifica se há uma query customizada
+                if self.custom_query:
+                    logging.info("Usando query customizada.")
                     df_sample = pd.read_sql_query(
-                        query, source_conn, params={"limit": 10}
+                        self.custom_query,
+                        source_conn,
+                        chunksize=self.chunk_size
                     )
-                    dfs_sample.append(df_sample)
+                    # Para fins de amostragem, pegar um pequeno chunk
+                    dfs_sample.append(next(df_sample))
+                else:
+                    # Lógica original para leitura das tabelas padrão
+                    for table in source_tables:
+                        table_name = table.name
+                        query = text(f"SELECT * FROM {table_name} LIMIT :limit")
+                        df_sample = pd.read_sql_query(
+                            query, source_conn, params={"limit": 10}
+                        )
+                        dfs_sample.append(df_sample)
 
             transformed_df_sample = self.transform_data(dfs_sample)
             self.check_table(target_table, transformed_df_sample)
@@ -317,15 +331,26 @@ class PostgresETL(BaseETL):
                 return
 
             chunk_iters = []
-            for table in source_tables:
-                table_name = table.name
-                chunk_iter = pd.read_sql_table(
-                    table_name,
+
+            # Se existir uma custom query, usar pd.read_sql_query
+            if self.custom_query:
+                chunk_iter = pd.read_sql_query(
+                    self.custom_query,
                     self.source_engine,
-                    schema=self.source_schema,
-                    chunksize=self.chunk_size,
+                    chunksize=self.chunk_size  # Definindo o tamanho dos chunks
                 )
                 chunk_iters.append(chunk_iter)
+            else:
+                # Caso contrário, usar pd.read_sql_table
+                for table in source_tables:
+                    chunk_iter = pd.read_sql_table(
+                        table.name,
+                        self.source_engine,
+                        schema=self.source_schema,
+                        chunksize=self.chunk_size,  # Definindo o tamanho dos chunks
+                    )
+                    chunk_iters.append(chunk_iter)
+
 
             idx = 0
             offset = 0
