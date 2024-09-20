@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from scripts.database_etl.base import SourceTables
 from scripts.database_etl import PostgresETL
 from scripts.database_etl.utils import setup_logging
+from scripts.transformations.transformation_rasa import transform_rasa
+
 
 default_args = {
     "owner": "Giovani Giampauli / Eric Silveira",
@@ -39,10 +41,10 @@ def clone_rasa_events():
 
         source_tables: SourceTables = []
 
-        events = SourceTables("events", "id", "id")
+        events = SourceTables("events_new", "id", "id")
         source_tables.append(events)
 
-        target_table = "events_target"
+        target_table = "events_target_new"
         key_column = "id"
 
         etl = PostgresETL(
@@ -53,6 +55,7 @@ def clone_rasa_events():
             chunk_size=50000,
             max_threads=10,
             multithreading=True,
+            transform_func=transform_rasa,
         )
 
         etl.clone_tables_incremental(source_tables, target_table, key_column)
