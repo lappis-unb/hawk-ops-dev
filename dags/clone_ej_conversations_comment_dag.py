@@ -39,10 +39,10 @@ def clone_ej_conversations_comment():
 
         source_tables: SourceTables = []
 
-        profile = SourceTables("profile", "", "")
-        source_tables.append(profile)
+        ej_conversations_comment = SourceTables("ej_conversations_comment", "", "")
+        source_tables.append(ej_conversations_comment)
 
-        target_table = "profile_target"
+        target_table = "conversations_comment_target"
 
         etl = PostgresETL(
             source_conn_id=source_conn_id,
