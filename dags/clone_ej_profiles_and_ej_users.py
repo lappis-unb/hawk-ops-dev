@@ -48,6 +48,16 @@ def clone_rasa_profiles():
         target_table = "users_with_profiles_target"
         key_column = "id"
 
+        custom_query = f"""
+        SELECT u.*, p.*
+        FROM 
+            public.users u
+        LEFT JOIN 
+            public.profiles p
+        ON 
+            u.id = p.user_id
+        """
+
         etl = PostgresETL(
             source_conn_id=source_conn_id,
             target_conn_id=target_conn_id,
@@ -56,7 +66,7 @@ def clone_rasa_profiles():
             chunk_size=50000,
             max_threads=10,
             multithreading=True,
-            transform_func=transformation_ej_profiles_and_ej_users,
+            custom_query=custom_query,
         )
 
         etl.clone_tables_replace(source_tables, target_table)
