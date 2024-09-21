@@ -21,6 +21,7 @@ class BaseETL(ABC):
         max_threads=5,
         multithreading=True,
         transform_func=None,
+        custom_query=None,  # Adiciona a query customizada ao construtor
     ):
         self.source_engine = source_engine
         self.target_engine = target_engine
@@ -28,6 +29,7 @@ class BaseETL(ABC):
         self.max_threads = max_threads
         self.multithreading = multithreading
         self.transform_func = transform_func
+        self.custom_query = custom_query  # Query customizada
 
     def transform_data(self, dfs):
         if self.transform_func:
