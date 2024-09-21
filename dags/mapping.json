@@ -1,0 +1,14 @@
+{
+  "conversations_comment_target": [
+    {
+      "foreign_key": "id",
+      "related_table": "users_with_profiles_target",
+      "primary_key": "user_id"
+    },
+    {
+      "foreign_key": "id",
+      "related_table": "users",
+      "primary_key": "user_id"
+    }
+  ]
+}
