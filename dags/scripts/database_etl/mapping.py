@@ -23,19 +23,46 @@ class Mapping():
 
         self.target_engine = self.target_hook.get_sqlalchemy_engine()
 
-    
+
     def mapping_relations(self):
-
-
         dag_directory = os.path.dirname(os.path.abspath(__file__))
         mapping_file_path = os.path.join(dag_directory, '../../mapping.json')
+
         with open(mapping_file_path, 'r') as mapping_file:
             mapping_data = json.load(mapping_file)
 
-            for relationships in mapping_data[self.target_table]:
-                    log = f"""
-                    \n foreign_key: {relationships['foreign_key']}
-                    \n related_table: {relationships['related_table']}
-                    \n primary_key: {relationships['primary_key']}
+        # Garantir que a tabela desejada está presente no JSON
+        if self.target_table not in mapping_data:
+            logging.error(f"Tabela {self.target_table} não encontrada no mapping.json.")
+            return
+
+        try:
+            with self.target_engine.connect() as conn:
+                for relationships in mapping_data[self.target_table]:
+                    logging.info(f"Processando relacionamento: {relationships}")
+
+                    schema = relationships.get('schema', self.target_schema)
+
+                    add_constraint = f"""
+                        DO $$
+                        BEGIN
+                            -- Verificar se a tabela já possui uma constraint UNIQUE
+                            IF NOT EXISTS (
+                                SELECT 1
+                                FROM pg_constraint
+                                WHERE conrelid = '{schema}.{relationships['related_table']}'::regclass
+                                AND contype = 'u'  -- 'u' representa uma constraint UNIQUE
+                            ) THEN
+                                -- Se não existir constraint UNIQUE, adicionar
+                                ALTER TABLE {schema}.{relationships['related_table']}
+                                ADD CONSTRAINT unique_{relationships['primary_key']} UNIQUE ({relationships['primary_key']});
+                            END IF;
+                        END $$;
                     """
-                    logging.info(log)
+
+
+        except Exception as e:
+            logging.error(f"Erro ao conectar ao banco de dados: {str(e)}")
+
+
+
