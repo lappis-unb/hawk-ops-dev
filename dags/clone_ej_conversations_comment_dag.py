@@ -14,9 +14,11 @@ default_args = {
     "retries": 0,
     "retry_delay": timedelta(minutes=5),
 }
+# SOURCE_CONN_ID = "rasa_db_airflow"
+# TARGET_CONN_ID = "rasa_db_airflow"
 
-SOURCE_CONN_ID = "rasa_db_airflow"
-TARGET_CONN_ID = "rasa_db_airflow"
+SOURCE_CONN_ID = "conn_db_rasa"
+TARGET_CONN_ID = "conn_db_rasa"
 SOURCE_SCHEMA = "public"
 TARGET_SCHEMA = "public"
 TARGET_TABLE = "conversations_comment_target"
