@@ -60,6 +60,37 @@ class Mapping():
                         END $$;
                     """
 
+                    try:
+                        result_constraint = conn.execute(add_constraint)
+                        logging.info(f"UNIQUE constraint na tabela {relationships['related_table']} definida com sucesso!")
+                    except Exception as e:
+                        logging.error(f"Erro ao definir a UNIQUE constraint {relationships['primary_key']} na tabela {relationships['related_table']}: {str(e)}")
+
+                    check_fk_exists = f"""
+                        SELECT 1
+                        FROM pg_constraint
+                        WHERE conname = 'fk_{relationships['foreign_key']}'
+                        AND conrelid = '{schema}.{self.target_table}'::regclass
+                        AND contype = 'f';  -- 'f' representa uma chave estrangeira
+                    """
+
+                    fk_exists = conn.execute(check_fk_exists).fetchone()
+
+                    if not fk_exists:
+                        mapping_tables = f"""
+                            ALTER TABLE {schema}.{self.target_table}
+                            ADD CONSTRAINT fk_{relationships['foreign_key']}
+                            FOREIGN KEY ({relationships['foreign_key']})
+                            REFERENCES {schema}.{relationships['related_table']} ({relationships['primary_key']});
+                        """
+
+                        try:
+                            result_mapping = conn.execute(mapping_tables)
+                            logging.info(f"Mapeamento entre tabelas: {self.target_table} e {relationships['related_table']} realizado com sucesso!")
+                        except Exception as e:
+                            logging.error(f"Falha ao mapear as tabelas {self.target_table} e {relationships['related_table']}: {str(e)}")
+                    else:
+                        logging.info(f"Chave estrangeira fk_{relationships['foreign_key']} já existe na tabela {self.target_table}.")
 
         except Exception as e:
             logging.error(f"Erro ao conectar ao banco de dados: {str(e)}")
