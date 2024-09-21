@@ -1,13 +1,11 @@
 {
   "conversations_comment_target": [
     {
-      "schema": "public",
       "foreign_key": "id",
       "related_table": "users_with_profiles_target",
       "primary_key": "user_id"
     },
     {
-      "schema": "public",
       "foreign_key": "name",
       "related_table": "users",
       "primary_key": "name"
