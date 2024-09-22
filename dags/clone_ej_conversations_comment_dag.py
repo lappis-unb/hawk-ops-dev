@@ -2,7 +2,7 @@ import logging
 from airflow.decorators import dag, task
 from datetime import datetime, timedelta
 from scripts.database_etl.base import SourceTables
-from scripts.database_etl import PostgresETL
+from scripts.database_etl import PostgresETL, Mapping
 from scripts.database_etl.utils import setup_logging
 
 default_args = {
@@ -14,6 +14,14 @@ default_args = {
     "retries": 0,
     "retry_delay": timedelta(minutes=5),
 }
+# SOURCE_CONN_ID = "rasa_db_airflow"
+# TARGET_CONN_ID = "rasa_db_airflow"
+
+SOURCE_CONN_ID = "conn_db_rasa"
+TARGET_CONN_ID = "conn_db_rasa"
+SOURCE_SCHEMA = "public"
+TARGET_SCHEMA = "public"
+TARGET_TABLE = "conversations_comment_target"
 
 
 @dag(
@@ -32,32 +40,36 @@ def clone_ej_conversations_comment():
         logging.info("Configurando ETL")
         setup_logging()
 
-        source_conn_id = "rasa_db_airflow"
-        target_conn_id = "rasa_db_airflow"
-        source_schema = "public"
-        target_schema = "public"
-
         source_tables: SourceTables = []
 
-        profile = SourceTables("profile", "", "")
-        source_tables.append(profile)
-
-        target_table = "profile_target"
+        ej_conversations_comment = SourceTables("users", "id", "id")
+        source_tables.append(ej_conversations_comment)
 
         etl = PostgresETL(
-            source_conn_id=source_conn_id,
-            target_conn_id=target_conn_id,
-            source_schema=source_schema,
-            target_schema=target_schema,
+            source_conn_id=SOURCE_CONN_ID,
+            target_conn_id=TARGET_CONN_ID,
+            source_schema=SOURCE_SCHEMA,
+            target_schema=TARGET_SCHEMA,
             chunk_size=50000,
             max_threads=10,
             multithreading=True,
         )
 
-        etl.clone_tables_replace(source_tables, target_table)
-        
+        etl.clone_tables_replace(source_tables, TARGET_TABLE)
+    
+    @task
+    def mapping():
 
-    clone()
+
+        relations = Mapping(
+             target_conn_id = TARGET_CONN_ID,
+             target_schema = TARGET_SCHEMA,
+             target_table = TARGET_TABLE,
+        )
+
+        relations.mapping_relations()
+
+    clone() >> mapping()
 
 
 dag = clone_ej_conversations_comment()
