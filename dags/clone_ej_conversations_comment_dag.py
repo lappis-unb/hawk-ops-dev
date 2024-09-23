@@ -2,7 +2,7 @@ import logging
 from airflow.decorators import dag, task
 from datetime import datetime, timedelta
 from scripts.database_etl.base import SourceTables
-from scripts.database_etl import PostgresETL, Mapping
+from scripts.database_etl import PostgresETL
 from scripts.database_etl.utils import setup_logging
 
 default_args = {
@@ -56,20 +56,8 @@ def clone_ej_conversations_comment():
         )
 
         etl.clone_tables_replace(source_tables, TARGET_TABLE)
-    
-    @task
-    def mapping():
 
-
-        relations = Mapping(
-             target_conn_id = TARGET_CONN_ID,
-             target_schema = TARGET_SCHEMA,
-             target_table = TARGET_TABLE,
-        )
-
-        relations.mapping_relations()
-
-    clone() >> mapping()
+    clone()
 
 
 dag = clone_ej_conversations_comment()
