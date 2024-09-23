@@ -1,4 +1,4 @@
 from .base import BaseETL
 from .postgres_etl import PostgresETL
-from .transformations import *
+from .mapping import Mapping
 from .utils import *
