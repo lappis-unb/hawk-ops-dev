@@ -71,3 +71,7 @@ clean-volumes:
 
 status:
 	$(DOCKER_COMPOSE) ps
+
+psql:
+	@echo "Entrando no container do banco de dados e iniciando o psql"
+	docker exec -it hawk-ops-dev_postgres_rasa_1 /bin/bash -c "psql -U rasa -d dbrasa"

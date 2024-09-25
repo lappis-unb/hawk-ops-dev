@@ -18,6 +18,7 @@ class PostgresETL(BaseETL):
         max_threads=5,
         multithreading=True,
         transform_func=None,
+        custom_query=None,  # Adiciona a query customizada ao construtor
     ):
         self.source_conn_id = source_conn_id
         self.target_conn_id = target_conn_id
@@ -37,6 +38,7 @@ class PostgresETL(BaseETL):
             max_threads,
             multithreading,
             transform_func,
+            custom_query,
         )
 
     def check_schema(self, schema_name, engine):
@@ -125,29 +127,50 @@ class PostgresETL(BaseETL):
         try:
             dfs = []
             with self.source_engine.connect() as source_conn:
-                for idx, table in enumerate(source_tables):
-                    table_name = table.name
+                if self.custom_query:
+                    # Se existir uma query customizada, utilizá-la
                     query = text(
                         f"""
-                        SELECT * FROM {table_name}
-                        WHERE {table.foreign_key} > :last_key
-                        ORDER BY {table.foreign_key}
+                        SELECT * FROM ({self.custom_query}) AS custom_query
+                        WHERE {source_tables[0].key_column} > :last_key
+                        ORDER BY {source_tables[0].key_column}
                         LIMIT :limit OFFSET :offset
                         """
                     )
+
                     df_chunk = pd.read_sql_query(
                         query,
                         source_conn,
                         params={
-                            "last_key": last_keys_target[table.key_column],
+                            "last_key": last_keys_target[source_tables[0].key_column],
                             "limit": self.chunk_size,
                             "offset": offset,
                         },
                     )
-                    logging.info(
-                        f"Chunk com offset {offset} da tabela {table_name} lido."
-                    )
+                    logging.info(f"Chunk com offset {offset} usando a query customizada lido.")
                     dfs.append(df_chunk)
+                else:
+                    for idx, table in enumerate(source_tables):
+                        table_name = table.name
+                        query = text(
+                            f"""
+                            SELECT * FROM {table_name}
+                            WHERE {table.foreign_key} > :last_key
+                            ORDER BY {table.foreign_key}
+                            LIMIT :limit OFFSET :offset
+                            """
+                        )
+                        df_chunk = pd.read_sql_query(
+                            query,
+                            source_conn,
+                            params={
+                                "last_key": last_keys_target[table.key_column],
+                                "limit": self.chunk_size,
+                                "offset": offset,
+                            },
+                        )
+                        logging.info(f"Chunk com offset {offset} da tabela {table_name} lido.")
+                        dfs.append(df_chunk)
 
             transformed_df = self.transform_data(dfs)
 
@@ -204,13 +227,8 @@ class PostgresETL(BaseETL):
 
             dfs_sample = []
             with self.source_engine.connect() as source_conn:
-                for table in source_tables:
-                    table_name = table.name
-                    query = text(f"SELECT * FROM {table_name} LIMIT :limit")
-                    df_sample = pd.read_sql_query(
-                        query, source_conn, params={"limit": 10}
-                    )
-                    dfs_sample.append(df_sample)
+                logging.info("Obtendo amostragem")
+                dfs_sample = self.get_sample_data(source_conn, source_tables)
 
             transformed_df_sample = self.transform_data(dfs_sample)
             self.check_table(target_table, transformed_df_sample)
@@ -228,20 +246,40 @@ class PostgresETL(BaseETL):
 
             total_rows = 0
             with self.source_engine.connect() as source_conn:
-                with self.target_engine.connect() as target_conn:
-                    for table in source_tables:
-                        table_name = table.name
-                        result = source_conn.execute(
-                            text(
-                                f"SELECT COUNT(*) FROM {table_name} WHERE {table.foreign_key} > :last_key"
-                            ),
-                            {"last_key": last_key_target[table.key_column]},
-                        )
-                        total_rows_table = result.scalar()
-                        total_rows += total_rows_table
-                        logging.info(
-                            f"Total de registros a serem transferidos de {table_name}: {total_rows_table}"
-                        )
+                if self.custom_query:
+                    logging.info("Contando registros usando query customizada.")
+                    
+                    custom_query_with_filter = f"""
+                        SELECT COUNT(*) 
+                        FROM ({self.custom_query}) AS custom_query
+                        WHERE {source_tables[0].foreign_key} > :last_key
+                    """
+                    
+                    result = source_conn.execute(
+                        text(custom_query_with_filter), 
+                        {"last_key": last_key_target[source_tables[0].key_column]}
+                    )
+                    total_rows_table = result.scalar()
+                    total_rows += total_rows_table
+
+                    logging.info(
+                        f"Total de registros a serem transferidos usando query customizada: {total_rows_table}"
+                    )
+                else:
+                    with self.target_engine.connect() as target_conn:
+                        for table in source_tables:
+                            table_name = table.name
+                            result = source_conn.execute(
+                                text(
+                                    f"SELECT COUNT(*) FROM {table_name} WHERE {table.foreign_key} > :last_key"
+                                ),
+                                {"last_key": last_key_target[table.key_column]},
+                            )
+                            total_rows_table = result.scalar()
+                            total_rows += total_rows_table
+                            logging.info(
+                                f"Total de registros a serem transferidos de {table_name}: {total_rows_table}"
+                            )
 
             if total_rows == 0:
                 logging.info("Nenhum novo registro para transferir.")
@@ -288,13 +326,8 @@ class PostgresETL(BaseETL):
 
             dfs_sample = []
             with self.source_engine.connect() as source_conn:
-                for table in source_tables:
-                    table_name = table.name
-                    query = text(f"SELECT * FROM {table_name} LIMIT :limit")
-                    df_sample = pd.read_sql_query(
-                        query, source_conn, params={"limit": 10}
-                    )
-                    dfs_sample.append(df_sample)
+                logging.info("Obtendo amostragem")
+                dfs_sample = self.get_sample_data(source_conn, source_tables)
 
             transformed_df_sample = self.transform_data(dfs_sample)
             self.check_table(target_table, transformed_df_sample)
@@ -317,15 +350,26 @@ class PostgresETL(BaseETL):
                 return
 
             chunk_iters = []
-            for table in source_tables:
-                table_name = table.name
-                chunk_iter = pd.read_sql_table(
-                    table_name,
+
+            # Se existir uma custom query, usar pd.read_sql_query
+            if self.custom_query:
+                chunk_iter = pd.read_sql_query(
+                    self.custom_query,
                     self.source_engine,
-                    schema=self.source_schema,
-                    chunksize=self.chunk_size,
+                    chunksize=self.chunk_size  # Definindo o tamanho dos chunks
                 )
                 chunk_iters.append(chunk_iter)
+            else:
+                # Caso contrário, usar pd.read_sql_table
+                for table in source_tables:
+                    chunk_iter = pd.read_sql_table(
+                        table.name,
+                        self.source_engine,
+                        schema=self.source_schema,
+                        chunksize=self.chunk_size,  # Definindo o tamanho dos chunks
+                    )
+                    chunk_iters.append(chunk_iter)
+
 
             idx = 0
             offset = 0
